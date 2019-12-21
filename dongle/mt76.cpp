@@ -351,7 +351,7 @@ bool MT76::pairClient(Bytes address)
     txWi.phyType = MT_PHY_TYPE_OFDM;
     txWi.ack = 1;
     txWi.wcid = 0xff;
-    txWi.mpduByteCount = sizeof(WlanFrame) + sizeof(data);
+    txWi.mpduByteCount = sizeof(WlanFrame) + data.size();
 
     WlanFrame wlanFrame = {};
 
