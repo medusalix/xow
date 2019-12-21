@@ -1,6 +1,6 @@
 # See mt76.h for possible channels
 BUILD := DEBUG
-CHANNEL := 165
+CHANNEL := 1
 VERSION := $(shell git describe --tags)
 
 FLAGS := -Wall -Wpedantic -std=c++17 -MMD
