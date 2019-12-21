@@ -1,0 +1,282 @@
+/*
+ * Copyright (C) 2019 Medusalix
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
+
+#include "input.h"
+#include "../utils/log.h"
+
+#include <cstring>
+#include <thread>
+#include <unistd.h>
+#include <fcntl.h>
+
+#define INPUT_MAX_FF_EFFECTS 1
+
+InputDevice::InputDevice()
+{
+    file = open("/dev/uinput", O_RDWR | O_NONBLOCK);
+
+    if (file < 0)
+    {
+        throw InputException("Error opening device");
+    }
+}
+
+InputDevice::~InputDevice()
+{
+    if (
+        ioctl(file, UI_DEV_DESTROY) < 0 ||
+        close(file) < 0
+    ) {
+        Log::error("Error closing device: %s", std::strerror(errno));
+    }
+
+    bool stop = true;
+
+    // Stop event loop
+    if (
+        write(stopPipe, &stop, sizeof(stop)) != sizeof(stop) ||
+        close(stopPipe) < 0
+    ) {
+        Log::error("Error stopping event loop: %s", std::strerror(errno));
+    }
+}
+
+void InputDevice::addKey(uint16_t code)
+{
+    if (
+        ioctl(file, UI_SET_EVBIT, EV_KEY) < 0 ||
+        ioctl(file, UI_SET_KEYBIT, code) < 0
+    ) {
+        throw InputException("Error adding key code");
+    }
+}
+
+void InputDevice::addAxis(uint16_t code, int32_t min, int32_t max)
+{
+    if (
+        ioctl(file, UI_SET_EVBIT, EV_ABS) < 0 ||
+        ioctl(file, UI_SET_ABSBIT, code) < 0
+    ) {
+        throw InputException("Error adding axis code");
+    }
+
+    uinput_abs_setup setup = {};
+
+    setup.code = code;
+    setup.absinfo.minimum = min;
+    setup.absinfo.maximum = max;
+
+    if (ioctl(file, UI_ABS_SETUP, &setup) < 0)
+    {
+        throw InputException("Error setting up axis");
+    }
+}
+
+void InputDevice::addFeedback(uint16_t code)
+{
+    if (
+        ioctl(file, UI_SET_EVBIT, EV_FF) < 0 ||
+        ioctl(file, UI_SET_FFBIT, code) < 0
+    ) {
+        throw InputException("Error adding feedback code");
+    }
+}
+
+void InputDevice::create(
+    uint16_t vendorId,
+    uint16_t productId,
+    std::string name
+) {
+    uinput_setup setup = {};
+
+    setup.id.bustype = BUS_USB;
+    setup.id.vendor = vendorId;
+    setup.id.product = productId;
+    setup.ff_effects_max = INPUT_MAX_FF_EFFECTS;
+
+    std::copy(name.begin(), name.end(), std::begin(setup.name));
+
+    if (
+        ioctl(file, UI_DEV_SETUP, &setup) < 0 ||
+        ioctl(file, UI_DEV_CREATE) < 0
+    ) {
+        throw InputException("Error creating device");
+    }
+}
+
+void InputDevice::readEvents()
+{
+    int pipes[2];
+
+    if (pipe(pipes))
+    {
+        throw InputException("Error creating stop pipe");
+    }
+
+    stopPipe = pipes[1];
+
+    int descriptorMax = std::max(file, pipes[0]);
+    fd_set descriptors;
+
+    FD_ZERO(&descriptors);
+    FD_SET(file, &descriptors);
+    FD_SET(pipes[0], &descriptors);
+
+    std::thread([=]() mutable
+    {
+        while (select(
+            descriptorMax + 1,
+            &descriptors,
+            nullptr,
+            nullptr,
+            nullptr
+        ) > 0) {
+            input_event event = {};
+            ssize_t count = read(file, &event, sizeof(event));
+
+            // Event loop should stop
+            if (count != sizeof(event))
+            {
+                break;
+            }
+
+            handleEvent(event);
+        }
+    }).detach();
+}
+
+void InputDevice::emitCode(
+    uint16_t type,
+    uint16_t code,
+    int32_t value
+) {
+    input_event event = {};
+
+    event.type = type;
+    event.code = code;
+    event.value = value;
+
+    if (write(file, &event, sizeof(event)) != sizeof(event))
+    {
+        throw InputException("Error emitting key");
+    }
+}
+
+void InputDevice::handleFeedbackUpload(uint32_t id)
+{
+    uinput_ff_upload upload = {};
+
+    upload.request_id = id;
+
+    if (ioctl(file, UI_BEGIN_FF_UPLOAD, &upload) < 0)
+    {
+        Log::error(
+            "Error beginning feedback upload: %s",
+            std::strerror(errno)
+        );
+
+        return;
+    }
+
+    effect = upload.effect;
+    upload.retval = 0;
+
+    if (ioctl(file, UI_END_FF_UPLOAD, &upload) < 0)
+    {
+        Log::error(
+            "Error ending feedback upload: %s",
+            std::strerror(errno)
+        );
+
+        return;
+    }
+}
+
+void InputDevice::handleFeedbackErase(uint32_t id)
+{
+    uinput_ff_erase erase = {};
+
+    erase.request_id = id;
+
+    if (ioctl(file, UI_BEGIN_FF_ERASE, &erase) < 0)
+    {
+        Log::error(
+            "Error beginning feedback erase: %s",
+            std::strerror(errno)
+        );
+
+        return;
+    }
+
+    effect = {};
+    erase.retval = 0;
+
+    if (ioctl(file, UI_END_FF_ERASE, &erase) < 0)
+    {
+        Log::error(
+            "Error ending feedback erase: %s",
+            std::strerror(errno)
+        );
+
+        return;
+    }
+}
+
+void InputDevice::handleEvent(input_event event)
+{
+    if (event.type == EV_UINPUT)
+    {
+        if (event.code == UI_FF_UPLOAD)
+        {
+            handleFeedbackUpload(event.value);
+        }
+
+        else if (event.code == UI_FF_ERASE)
+        {
+            handleFeedbackErase(event.value);
+
+            // Stop feedback
+            feedbackReceived(effect, 0);
+        }
+    }
+
+    else if (event.type == EV_FF)
+    {
+        if (event.code == FF_GAIN)
+        {
+            // Gain varies between 0 and 100
+            effectGain = event.value;
+
+            return;
+        }
+
+        feedbackReceived(effect, effectGain);
+    }
+}
+
+bool InputDevice::isAvailable()
+{
+    int file = open("/dev/uinput", O_RDWR);
+
+    close(file);
+
+    return file >= 0;
+}
+
+InputException::InputException(std::string message) :
+    std::runtime_error(message + ": " + std::strerror(errno)) {}
