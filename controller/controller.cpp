@@ -35,6 +35,10 @@
 #define TRIGGER_MIN 0
 #define TRIGGER_MAX 1023
 
+// 1 bit for the DPAD
+#define DPAD_MIN -1
+#define DPAD_MAX 1
+
 Controller::Controller(SendPacket sendPacket) : sendPacket(sendPacket)
 {
     if (!acknowledgePacket() || !setPowerMode(POWER_ON))
@@ -66,10 +70,6 @@ Controller::Controller(SendPacket sendPacket) : sendPacket(sendPacket)
     addKey(BTN_B);
     addKey(BTN_X);
     addKey(BTN_Y);
-    addKey(BTN_DPAD_UP);
-    addKey(BTN_DPAD_DOWN);
-    addKey(BTN_DPAD_LEFT);
-    addKey(BTN_DPAD_RIGHT);
     addKey(BTN_TL);
     addKey(BTN_TR);
     addKey(BTN_THUMBL);
@@ -80,6 +80,8 @@ Controller::Controller(SendPacket sendPacket) : sendPacket(sendPacket)
     addAxis(ABS_RY, STICK_MIN, STICK_MAX);
     addAxis(ABS_Z, TRIGGER_MIN, TRIGGER_MAX);
     addAxis(ABS_RZ, TRIGGER_MIN, TRIGGER_MAX);
+    addAxis(ABS_HAT0X, DPAD_MIN, DPAD_MAX);
+    addAxis(ABS_HAT0Y, DPAD_MIN, DPAD_MAX);
     addFeedback(FF_RUMBLE);
     create(CONTROLLER_VID, CONTROLLER_PID, CONTROLLER_NAME);
     readEvents();
@@ -122,10 +124,6 @@ void Controller::reportInput(const InputData *input)
     setKey(BTN_B, input->buttons.b);
     setKey(BTN_X, input->buttons.x);
     setKey(BTN_Y, input->buttons.y);
-    setKey(BTN_DPAD_UP, input->buttons.dpadUp);
-    setKey(BTN_DPAD_DOWN, input->buttons.dpadDown);
-    setKey(BTN_DPAD_LEFT, input->buttons.dpadLeft);
-    setKey(BTN_DPAD_RIGHT, input->buttons.dpadRight);
     setKey(BTN_TL, input->buttons.bumperLeft);
     setKey(BTN_TR, input->buttons.bumperRight);
     setKey(BTN_THUMBL, input->buttons.stickLeft);
@@ -136,6 +134,8 @@ void Controller::reportInput(const InputData *input)
     setAxis(ABS_RY, ~input->stickRightY);
     setAxis(ABS_Z, input->triggerLeft);
     setAxis(ABS_RZ, input->triggerRight);
+    setAxis(ABS_HAT0X, input->buttons.dpadRight - input->buttons.dpadLeft);
+    setAxis(ABS_HAT0Y, input->buttons.dpadDown - input->buttons.dpadUp);
     report();
 }
 
