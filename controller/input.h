@@ -58,7 +58,7 @@ protected:
         emitCode(EV_KEY, key, pressed);
     }
 
-    inline void setAxis(uint16_t abs, uint32_t value)
+    inline void setAxis(uint16_t abs, int32_t value)
     {
         emitCode(EV_ABS, abs, value);
     }
