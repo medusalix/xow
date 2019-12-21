@@ -62,10 +62,10 @@ Controller::Controller(SendPacket sendPacket) : sendPacket(sendPacket)
     addKey(BTN_MODE);
     addKey(BTN_START);
     addKey(BTN_SELECT);
-    addKey(BTN_NORTH);
-    addKey(BTN_EAST);
-    addKey(BTN_SOUTH);
-    addKey(BTN_WEST);
+    addKey(BTN_A);
+    addKey(BTN_B);
+    addKey(BTN_X);
+    addKey(BTN_Y);
     addKey(BTN_DPAD_UP);
     addKey(BTN_DPAD_DOWN);
     addKey(BTN_DPAD_LEFT);
@@ -118,10 +118,10 @@ void Controller::reportInput(const InputData *input)
 {
     setKey(BTN_START, input->buttons.start);
     setKey(BTN_SELECT, input->buttons.select);
-    setKey(BTN_NORTH, input->buttons.y);
-    setKey(BTN_EAST, input->buttons.b);
-    setKey(BTN_SOUTH, input->buttons.a);
-    setKey(BTN_WEST, input->buttons.x);
+    setKey(BTN_A, input->buttons.a);
+    setKey(BTN_B, input->buttons.b);
+    setKey(BTN_X, input->buttons.x);
+    setKey(BTN_Y, input->buttons.y);
     setKey(BTN_DPAD_UP, input->buttons.dpadUp);
     setKey(BTN_DPAD_DOWN, input->buttons.dpadDown);
     setKey(BTN_DPAD_LEFT, input->buttons.dpadLeft);
