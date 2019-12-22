@@ -44,6 +44,13 @@ This would greatly simplify things.
 
 Any **help/suggestions** regarding the planned features is much appreciated.
 
+## Releases
+
+- [Arch Linux](https://aur.archlinux.org/packages/xow-git)
+
+Feel free to create prebuilt releases of xow for any package repository you want.
+Ideally, I would like to provide binaries for every major Linux distribution.
+
 ## Building
 
 Make sure that `libusb` is installed on your machine. You can build xow using the following command:
