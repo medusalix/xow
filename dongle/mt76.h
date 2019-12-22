@@ -764,6 +764,7 @@
 // LED modes
 #define MT_LED_BLINK 0x00
 #define MT_LED_ON 0x01
+#define MT_LED_OFF 0x02
 
 enum PhyType
 {

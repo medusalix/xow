@@ -645,6 +645,12 @@ void MT76::initChip()
         throw MT76Exception("Failed to init registers");
     }
 
+    // Turn off LED
+    if (!setLedMode(MT_LED_OFF))
+    {
+        throw MT76Exception("Failed to turn off LED");
+    }
+
     controlWrite(MT_MAC_SYS_CTRL, 0);
 
     // Calibrate chip
