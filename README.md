@@ -23,6 +23,7 @@ The driver supports the following Xbox One controllers:
 | 1537         | 2013 | Original controller     | **Untested** |
 | 1697         | 2015 | Added audio jack        | **Working**  |
 | 1708         | 2016 | Bluetooth functionality | **Working**  |
+| 1713         | 2016 | Bluetooth functionality | **Working**  |
 
 Elite controllers may be added in the future.
 
