@@ -3,7 +3,7 @@ BUILD := DEBUG
 CHANNEL := 1
 VERSION := $(shell git describe --tags)
 
-FLAGS := -Wall -Wpedantic -std=c++17 -MMD
+FLAGS := -Wall -Wpedantic -std=c++11 -MMD
 DEBUG_FLAGS := -Og -g -DDEBUG
 RELEASE_FLAGS := -O3
 MACROS := -DCHANNEL=$(CHANNEL) -DVERSION=\"$(VERSION)\"
