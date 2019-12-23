@@ -42,7 +42,7 @@ InputDevice::~InputDevice()
         ioctl(file, UI_DEV_DESTROY) < 0 ||
         close(file) < 0
     ) {
-        Log::error("Error closing device: %s", std::strerror(errno));
+        Log::error("Error closing device: %s", strerror(errno));
     }
 
     bool stop = true;
@@ -52,7 +52,7 @@ InputDevice::~InputDevice()
         write(stopPipe, &stop, sizeof(stop)) != sizeof(stop) ||
         close(stopPipe) < 0
     ) {
-        Log::error("Error stopping event loop: %s", std::strerror(errno));
+        Log::error("Error stopping event loop: %s", strerror(errno));
     }
 }
 
@@ -187,7 +187,7 @@ void InputDevice::handleFeedbackUpload(uint32_t id)
     {
         Log::error(
             "Error beginning feedback upload: %s",
-            std::strerror(errno)
+            strerror(errno)
         );
 
         return;
@@ -200,7 +200,7 @@ void InputDevice::handleFeedbackUpload(uint32_t id)
     {
         Log::error(
             "Error ending feedback upload: %s",
-            std::strerror(errno)
+            strerror(errno)
         );
 
         return;
@@ -217,7 +217,7 @@ void InputDevice::handleFeedbackErase(uint32_t id)
     {
         Log::error(
             "Error beginning feedback erase: %s",
-            std::strerror(errno)
+            strerror(errno)
         );
 
         return;
@@ -230,7 +230,7 @@ void InputDevice::handleFeedbackErase(uint32_t id)
     {
         Log::error(
             "Error ending feedback erase: %s",
-            std::strerror(errno)
+            strerror(errno)
         );
 
         return;
@@ -279,4 +279,4 @@ bool InputDevice::isAvailable()
 }
 
 InputException::InputException(std::string message) :
-    std::runtime_error(message + ": " + std::strerror(errno)) {}
+    std::runtime_error(message + ": " + strerror(errno)) {}
