@@ -49,7 +49,7 @@ namespace Log
     inline void debug(std::string message)
     {
         #ifdef DEBUG
-        std::scoped_lock lock(mutex);
+        std::lock_guard<std::mutex> lock(mutex);
 
         printHeader(stdout, "DEBUG", message);
 
@@ -62,7 +62,7 @@ namespace Log
     inline void debug(std::string message, Args... args)
     {
         #ifdef DEBUG
-        std::scoped_lock lock(mutex);
+        std::lock_guard<std::mutex> lock(mutex);
 
         printHeader(stdout, "DEBUG", message);
 
@@ -73,7 +73,7 @@ namespace Log
 
     inline void info(std::string message)
     {
-        std::scoped_lock lock(mutex);
+        std::lock_guard<std::mutex> lock(mutex);
 
         printHeader(stdout, "INFO", message);
 
@@ -84,7 +84,7 @@ namespace Log
     template<typename... Args>
     inline void info(std::string message, Args... args)
     {
-        std::scoped_lock lock(mutex);
+        std::lock_guard<std::mutex> lock(mutex);
 
         printHeader(stdout, "INFO", message);
 
@@ -94,7 +94,7 @@ namespace Log
 
     inline void error(std::string message)
     {
-        std::scoped_lock lock(mutex);
+        std::lock_guard<std::mutex> lock(mutex);
 
         printHeader(stderr, "ERROR", message);
 
@@ -105,7 +105,7 @@ namespace Log
     template<typename... Args>
     inline void error(std::string message, Args... args)
     {
-        std::scoped_lock lock(mutex);
+        std::lock_guard<std::mutex> lock(mutex);
 
         printHeader(stderr, "ERROR", message);
 

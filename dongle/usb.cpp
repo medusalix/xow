@@ -90,7 +90,7 @@ void UsbDevice::close()
 
 void UsbDevice::controlTransfer(ControlPacket packet)
 {
-    std::scoped_lock<std::mutex> lock(controlMutex);
+    std::lock_guard<std::mutex> lock(controlMutex);
 
     uint8_t type = LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE;
 
@@ -188,7 +188,7 @@ bool UsbDevice::nextBulkPacket(Bytes &packet)
 
 bool UsbDevice::bulkWrite(uint8_t endpoint, Bytes &data)
 {
-    std::scoped_lock<std::mutex> lock(writeMutex);
+    std::lock_guard<std::mutex> lock(writeMutex);
 
     int error = libusb_bulk_transfer(
         handle,
@@ -226,7 +226,7 @@ void UsbDevice::readCallback(libusb_transfer *transfer)
         transfer->buffer,
         transfer->buffer + transfer->actual_length
     );
-    std::scoped_lock<std::mutex> lock(device->readMutex);
+    std::lock_guard<std::mutex> lock(device->readMutex);
 
     device->readQueue.push(data);
     device->readCondition.notify_one();

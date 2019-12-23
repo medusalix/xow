@@ -193,9 +193,7 @@ private:
 
     void reportInput(const InputData *input);
 
-    bool acknowledgePacket(
-        std::optional<ControllerFrame> packet = {}
-    );
+    bool acknowledgePacket(const ControllerFrame *packet = nullptr);
     bool requestSerialNumber();
     bool setPowerMode(PowerMode mode);
     bool setLedMode(LedModeData data);

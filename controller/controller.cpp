@@ -147,7 +147,7 @@ void Controller::packetReceived(const Bytes &packet)
         frame->command == CMD_SERIAL_NUM &&
         frame->length == sizeof(SerialData)
     ) {
-        if (!acknowledgePacket(*frame))
+        if (!acknowledgePacket(frame))
         {
             Log::error("Failed to acknowledge serial number packet");
 
@@ -195,7 +195,7 @@ void Controller::packetReceived(const Bytes &packet)
         frame->command == CMD_GUIDE_BTN &&
         frame->length == sizeof(GuideButtonData)
     ) {
-        if (!acknowledgePacket(*frame))
+        if (!acknowledgePacket(frame))
         {
             Log::error("Failed to acknowledge guide button packet");
 
@@ -211,9 +211,8 @@ void Controller::packetReceived(const Bytes &packet)
     }
 }
 
-bool Controller::acknowledgePacket(
-    std::optional<ControllerFrame> packet
-) {
+bool Controller::acknowledgePacket(const ControllerFrame *packet)
+{
     ControllerFrame frame = {};
 
     frame.command = CMD_ACK;
