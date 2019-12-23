@@ -13,14 +13,12 @@ In case of problems, please open an issue with all the relevant details (dongle 
 
 ## Supported devices
 
-xow currently only supports the newer model of the wireless dongle (the slim one).
-**Additional packet captures are needed to add support for the old dongle (the bulky one).**
-
-The driver supports the following Xbox One controllers:
+xow supports both versions of the wireless dongle (slim and bulky one).
+The following Xbox One controllers are currently compatible with the driver:
 
 | Model number | Year | Additional information  | Status       |
 |--------------|------|-------------------------|--------------|
-| 1537         | 2013 | Original controller     | **Untested** |
+| 1537         | 2013 | Original controller     | **Broken**   |
 | 1697         | 2015 | Added audio jack        | **Working**  |
 | 1708         | 2016 | Bluetooth functionality | **Working**  |
 
