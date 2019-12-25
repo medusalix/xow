@@ -530,7 +530,12 @@ bool MT76::initRegisters()
 
 void MT76::loadFirmware()
 {
-    controlWrite(MT_FW_RESET, 0, MT_VEND_DEV_MODE);
+    if (controlRead(MT_FCE_DMA_ADDR, MT_VEND_READ_CFG))
+    {
+        Log::debug("Firmware already loaded");
+
+        return;
+    }
 
     DmaConfig config = {};
 
