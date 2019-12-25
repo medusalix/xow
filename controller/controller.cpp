@@ -89,28 +89,33 @@ Controller::Controller(SendPacket sendPacket) : sendPacket(sendPacket)
 
 void Controller::feedbackReceived(ff_effect effect, uint8_t gain)
 {
-    RumbleData rumble = {};
+    if (effect.type != FF_RUMBLE)
+    {
+        return;
+    }
 
-    uint8_t weak = static_cast<uint8_t>(effect.u.rumble.weak_magnitude >> 8);
-    uint8_t strong = static_cast<uint8_t>(effect.u.rumble.strong_magnitude >> 8);
+    // Map Linux' magnitudes to rumble power
+    uint8_t weak = effect.u.rumble.weak_magnitude >> 8;
+    uint8_t strong = effect.u.rumble.strong_magnitude >> 8;
 
     // Scale magnitudes with gain
     weak *= gain * 0.01;
     strong *= gain * 0.01;
 
     Log::debug(
-        "Feedback length: %d, delay: %d, weak: %d, strong: %d",
+        "Feedback length: %d, delay: %d, direction: %d, weak: %d, strong: %d",
         effect.replay.length,
         effect.replay.delay,
+        effect.direction,
         weak,
         strong
     );
 
+    RumbleData rumble = {};
+
     rumble.motors = RUMBLE_ALL;
     rumble.left = strong;
     rumble.right = weak;
-    rumble.triggerLeft = strong;
-    rumble.triggerRight = weak;
     rumble.duration = 0xff;
 
     performRumble(rumble);
