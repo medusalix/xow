@@ -718,7 +718,6 @@
 
 // Firmware defines
 // DLM offset differs from Linux source
-#define MT_FW_RESET 0x01
 #define MT_MCU_ILM_OFFSET 0x80000
 #define MT_MCU_DLM_OFFSET 0x100000 + 0x10800
 #define MT_FW_CHUNK_SIZE 0x3800
