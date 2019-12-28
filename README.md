@@ -83,7 +83,7 @@ xow needs root privileges to create an input device from user space.
 ## Troubleshooting
 
 - Connection dropouts
-    - Try adjust the radio's [`CHANNEL`](Makefile) (2.4 GHz channels might work better)
+    - Adjust the radio's [`CHANNEL`](Makefile) (2.4 GHz channels might work better)
 - Buttons/triggers/sticks are mapped incorrectly
     - Try the options listed on [this page](https://wiki.archlinux.org/index.php/Gamepad#Setting_up_deadzones_and_calibration) to remap your inputs.
 - Input from the sticks is jumping around
