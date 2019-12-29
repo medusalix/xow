@@ -188,7 +188,7 @@ public:
 private:
     void feedbackReceived(
         ff_effect effect,
-        uint8_t gain
+        uint16_t gain
     ) override;
 
     void reportInput(const InputData *input);
@@ -200,6 +200,7 @@ private:
     bool performRumble(RumbleData data);
 
     SendPacket sendPacket;
+    bool rumbling = false;
 };
 
 class ControllerException : public std::runtime_error

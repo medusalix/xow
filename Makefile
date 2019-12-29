@@ -9,7 +9,7 @@ RELEASE_FLAGS := -O3
 MACROS := -DCHANNEL=$(CHANNEL) -DVERSION=\"$(VERSION)\"
 
 CXXFLAGS += $(FLAGS) $($(BUILD)_FLAGS) $(MACROS)
-LDLIBS += -lstdc++ -lusb-1.0 -lpthread
+LDLIBS += -lstdc++ -lm -lusb-1.0 -lpthread
 SOURCES := $(wildcard *.cpp) $(wildcard */*.cpp)
 OBJECTS := $(patsubst %.cpp,%.o,$(SOURCES)) firmware.o
 DEPENDENCIES := $(OBJECTS:.o=.d)

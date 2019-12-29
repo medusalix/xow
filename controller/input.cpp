@@ -23,6 +23,7 @@
 #include <thread>
 #include <unistd.h>
 #include <fcntl.h>
+#include <poll.h>
 
 #define INPUT_MAX_FF_EFFECTS 1
 
@@ -130,32 +131,31 @@ void InputDevice::readEvents()
 
     stopPipe = pipes[1];
 
-    int descriptorMax = std::max(file, pipes[0]);
-    fd_set descriptors;
+    pollfd polls[2] = {};
 
-    FD_ZERO(&descriptors);
-    FD_SET(file, &descriptors);
-    FD_SET(pipes[0], &descriptors);
+    // Wait for an input event or a stop signal
+    polls[0].fd = file;
+    polls[1].fd = pipes[0];
+    polls[0].events = POLLIN;
+    polls[1].events = POLLIN;
 
     std::thread([=]() mutable
     {
-        while (select(
-            descriptorMax + 1,
-            &descriptors,
-            nullptr,
-            nullptr,
-            nullptr
-        ) > 0) {
-            input_event event = {};
-            ssize_t count = read(file, &event, sizeof(event));
-
+        while (poll(polls, 2, -1) > 0)
+        {
             // Event loop should stop
-            if (count != sizeof(event))
+            if (polls[1].revents & POLLIN)
             {
                 break;
             }
 
-            handleEvent(event);
+            input_event event = {};
+            ssize_t count = read(file, &event, sizeof(event));
+
+            if (count == sizeof(event))
+            {
+                handleEvent(event);
+            }
         }
     }).detach();
 }
@@ -259,13 +259,12 @@ void InputDevice::handleEvent(input_event event)
     {
         if (event.code == FF_GAIN)
         {
-            // Gain varies between 0 and 100
+            // Gain varies between 0 and 0xffff
             effectGain = event.value;
-
-            return;
         }
 
-        feedbackReceived(effect, effectGain);
+        // Start or stop feedback based on event value
+        feedbackReceived(effect, event.value > 0 ? effectGain : 0);
     }
 }
 
