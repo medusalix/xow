@@ -44,11 +44,6 @@ Ideally, other applications should be able to query/set these things.
 The Windows driver goes through all channels and reads `MT_CH_IDLE` and `MT_CH_BUSY` to select the best one.
 I have not figured out what these values are and how they are used to determine the least noisy channel.
 
-#### Improved controller rumble
-
-Rumble support is not finished yet and I would really like to see `ff_memless` being implemented for `uinput` devices (see [here](https://patchwork.kernel.org/patch/9039051)).
-This would greatly simplify things.
-
 Any **help/suggestions** regarding the planned features is much appreciated.
 
 ## Releases
