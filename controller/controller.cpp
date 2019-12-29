@@ -20,6 +20,7 @@
 #include "../utils/log.h"
 #include "../utils/bytes.h"
 
+#include <cmath>
 #include <linux/input.h>
 
 // Hardware ID for the Xbox One S controller
@@ -87,20 +88,21 @@ Controller::Controller(SendPacket sendPacket) : sendPacket(sendPacket)
     readEvents();
 }
 
-void Controller::feedbackReceived(ff_effect effect, uint8_t gain)
+void Controller::feedbackReceived(ff_effect effect, uint16_t gain)
 {
     if (effect.type != FF_RUMBLE)
     {
         return;
     }
 
-    // Map Linux' magnitudes to rumble power
-    uint8_t weak = effect.u.rumble.weak_magnitude >> 8;
-    uint8_t strong = effect.u.rumble.strong_magnitude >> 8;
+    if (!rumbling && gain == 0)
+    {
+        return;
+    }
 
-    // Scale magnitudes with gain
-    weak *= gain * 0.01;
-    strong *= gain * 0.01;
+    // Map Linux' magnitudes to rumble power
+    uint8_t weak = effect.u.rumble.weak_magnitude * gain / 0xffffff;
+    uint8_t strong = effect.u.rumble.strong_magnitude * gain / 0xffffff;
 
     Log::debug(
         "Feedback length: %d, delay: %d, direction: %d, weak: %d, strong: %d",
@@ -118,7 +120,27 @@ void Controller::feedbackReceived(ff_effect effect, uint8_t gain)
     rumble.right = weak;
     rumble.duration = 0xff;
 
+    // Upper half of the controller (from left to right)
+    if (effect.direction >= 0x4000 && effect.direction <= 0xc000)
+    {
+        // Angle shifted by an eighth of a full circle
+        float angle = static_cast<float>(effect.direction) / 0xffff - 0.125;
+        float left = sin(2 * M_PI * angle);
+        float right = cos(2 * M_PI * angle);
+        uint8_t maxPower = strong > weak ? strong : weak;
+
+        // Limit values to the left and right areas
+        left = left > 0 ? left : 0;
+        right = right < 0 ? -right : 0;
+
+        // The trigger motors are very strong
+        rumble.triggerLeft = left * maxPower / 4;
+        rumble.triggerRight = right * maxPower / 4;
+    }
+
     performRumble(rumble);
+
+    rumbling = gain > 0;
 }
 
 void Controller::reportInput(const InputData *input)

@@ -39,7 +39,7 @@ protected:
 
     virtual void feedbackReceived(
         ff_effect effect,
-        uint8_t gain
+        uint16_t gain
     ) = 0;
 
     void addKey(uint16_t code);
@@ -81,7 +81,7 @@ private:
 
     int file, stopPipe;
     ff_effect effect = {};
-    uint8_t effectGain = 100;
+    uint16_t effectGain = 0xffff;
 };
 
 class InputException : public std::runtime_error
