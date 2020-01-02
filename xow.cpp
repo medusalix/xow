@@ -20,6 +20,7 @@
 #include "dongle/usb.h"
 #include "dongle/dongle.h"
 
+#include <cstdlib>
 #include <stdexcept>
 
 int main()
@@ -43,8 +44,8 @@ int main()
     {
         Log::error(exception.what());
 
-        return -1;
+        return EXIT_FAILURE;
     }
 
-    return 0;
+    return EXIT_SUCCESS;
 }
