@@ -21,14 +21,6 @@
 
 #include <functional>
 
-Dongle::Dongle()
-{
-    if (!InputDevice::isAvailable())
-    {
-        throw DongleException("Kernel module 'uinput' is not available");
-    }
-}
-
 void Dongle::added()
 {
     Log::info("Dongle plugged in");

@@ -268,14 +268,5 @@ void InputDevice::handleEvent(input_event event)
     }
 }
 
-bool InputDevice::isAvailable()
-{
-    int file = open("/dev/uinput", O_RDWR);
-
-    close(file);
-
-    return file >= 0;
-}
-
 InputException::InputException(std::string message) :
     std::runtime_error(message + ": " + strerror(errno)) {}
