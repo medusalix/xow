@@ -695,7 +695,7 @@ bool MT76::writeBeacon(bool pairing)
 {
     const Bytes broadcastAddress = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
-    // Required for client to connect reliably
+    // Required for clients to connect reliably
     // Probably contains the selected channel pair
     // 00 -> a5 and 30 -> 99
     const Bytes beaconData = {

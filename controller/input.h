@@ -30,9 +30,6 @@
  */
 class InputDevice
 {
-public:
-    static bool isAvailable();
-
 protected:
     InputDevice();
     virtual ~InputDevice();

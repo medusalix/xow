@@ -31,8 +31,8 @@
 #define DONGLE_VID 0x045e
 
 // Product IDs for both versions of the dongle
-#define DONGLE_PID_NEW 0x02fe
 #define DONGLE_PID_OLD 0x02e6
+#define DONGLE_PID_NEW 0x02fe
 
 class Bytes;
 
@@ -42,9 +42,6 @@ class Bytes;
  */
 class Dongle : public MT76
 {
-public:
-    Dongle();
-
 private:
     void added() override;
     void removed() override;
