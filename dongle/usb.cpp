@@ -78,12 +78,17 @@ void UsbDevice::open(libusb_device *device)
 
 void UsbDevice::close()
 {
-    libusb_close(handle);
-    handle = nullptr;
+    // Avoid race conditions by acquiring all mutexes
+    std::lock_guard<std::mutex> controlLock(controlMutex);
+    std::lock_guard<std::mutex> readLock(readMutex);
+    std::lock_guard<std::mutex> writeLock(writeMutex);
 
     // Clear read queue
     readCondition.notify_one();
     readQueue = std::queue<Bytes>();
+
+    libusb_close(handle);
+    handle = nullptr;
 
     removed();
 }
@@ -92,17 +97,15 @@ void UsbDevice::controlTransfer(ControlPacket packet)
 {
     std::lock_guard<std::mutex> lock(controlMutex);
 
+    // Device was disconnected
+    if (!handle)
+    {
+        return;
+    }
+
     uint8_t type = LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE;
 
-    if (packet.out)
-    {
-        type |= LIBUSB_ENDPOINT_OUT;
-    }
-
-    else
-    {
-        type |= LIBUSB_ENDPOINT_IN;
-    }
+    type |= packet.out ? LIBUSB_ENDPOINT_OUT : LIBUSB_ENDPOINT_IN;
 
     // Number of bytes or error code
     int count = libusb_control_transfer(
@@ -190,6 +193,12 @@ bool UsbDevice::bulkWrite(uint8_t endpoint, Bytes &data)
 {
     std::lock_guard<std::mutex> lock(writeMutex);
 
+    // Device was disconnected
+    if (!handle)
+    {
+        return false;
+    }
+
     int error = libusb_bulk_transfer(
         handle,
         endpoint | LIBUSB_ENDPOINT_OUT,
@@ -215,9 +224,9 @@ void UsbDevice::readCallback(libusb_transfer *transfer)
 
     if (transfer->status != LIBUSB_TRANSFER_COMPLETED)
     {
-        libusb_free_transfer(transfer);
-
         Log::error("Error in bulk read: %d", transfer->status);
+
+        libusb_free_transfer(transfer);
 
         return;
     }
