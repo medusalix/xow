@@ -78,10 +78,13 @@ void UsbDevice::open(libusb_device *device)
 
 void UsbDevice::close()
 {
+    // Prevent deadlocks from occuring
+    std::lock(controlMutex, readMutex, writeMutex);
+
     // Avoid race conditions by acquiring all mutexes
-    std::lock_guard<std::mutex> controlLock(controlMutex);
-    std::lock_guard<std::mutex> readLock(readMutex);
-    std::lock_guard<std::mutex> writeLock(writeMutex);
+    std::lock_guard<std::mutex> controlLock(controlMutex, std::adopt_lock);
+    std::lock_guard<std::mutex> readLock(readMutex, std::adopt_lock);
+    std::lock_guard<std::mutex> writeLock(writeMutex, std::adopt_lock);
 
     // Clear read queue
     readCondition.notify_one();
