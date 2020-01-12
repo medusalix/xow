@@ -50,10 +50,16 @@ Any **help/suggestions** regarding the planned features is much appreciated.
 
 - [Arch Linux](https://aur.archlinux.org/packages/xow-git)
 
-Feel free to create prebuilt releases of xow for any package repository you want.
+Feel free to create prebuilt releases of xow for any package repository you like.
 Ideally, I would like to provide binaries for every major Linux distribution.
 
 ## Building
+
+Clone the repository (necessary for version tagging to work):
+
+```
+git clone https://github.com/medusalix/xow
+```
 
 Make sure that `libusb` is installed on your machine. You can build xow using the following command:
 
@@ -61,10 +67,14 @@ Make sure that `libusb` is installed on your machine. You can build xow using th
 make BUILD=RELEASE
 ```
 
-**Option 1:** Install xow as a `systemd` service (starts xow at boot):
+**NOTE:** Please use `BUILD=DEBUG` when asked for your debug logs.
+
+**Option 1 (recommended):** Install xow as a `systemd` service (starts xow at boot time):
 
 ```
 sudo make install
+sudo systemctl enable xow
+sudo systemctl start xow
 ```
 
 **Option 2:** Run xow manually:
@@ -73,12 +83,10 @@ sudo make install
 sudo ./xow
 ```
 
-xow needs root privileges to create an input device from user space.
+Running xow without `make install` is **not recommended** (except for debugging) as it requires root privileges to operate.
 
 ## Troubleshooting
 
-- Connection dropouts
-    - Adjust the radio's [`CHANNEL`](Makefile) (2.4 GHz channels might work better)
 - Buttons/triggers/sticks are mapped incorrectly
     - Try the options listed on [this page](https://wiki.archlinux.org/index.php/Gamepad#Setting_up_deadzones_and_calibration) to remap your inputs.
 - Input from the sticks is jumping around
