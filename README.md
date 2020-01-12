@@ -96,3 +96,18 @@ As no datasheets for this chip are publicly available, I have used datasheets of
 Special thanks to the authors of Linux' [`mt76`](https://github.com/torvalds/linux/tree/master/drivers/net/wireless/mediatek/mt76) kernel driver.
 It would have been impossible for me to create this driver without `mt76`'s source code.
 If anyone has a greater understanding of the GIP or the weird quirks I had to add to make the driver work (like `initGain`), please contact me.
+
+## License
+
+xow is released under the [GNU General Public License, Version 2](LICENSE).
+
+```
+Copyright (C) 2019 Medusalix
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+```
+
+The included `firmware.bin` file, extracted from the Windows drivers, is provided under a [special proprietary license](LICENSE-FIRMWARE).
