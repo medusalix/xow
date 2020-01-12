@@ -2,7 +2,8 @@
 Description=Xbox One Wireless Dongle Driver
 
 [Service]
-ExecStart=/usr/local/bin/xow
+ExecStart=#BINDIR#/xow
+DynamicUser=true
 
 [Install]
 WantedBy=multi-user.target
