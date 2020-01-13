@@ -42,6 +42,13 @@ install: xow xow.service
 	install -D -m 644 xow.service $(DESTDIR)$(SYSDDIR)/xow.service
 	$(RM) xow.service
 
+.PHONY: uninstall
+uninstall:
+	$(RM) $(DESTDIR)$(BINDIR)/xow
+	$(RM) $(DESTDIR)$(UDEVDIR)/99-xow.rules
+	$(RM) $(DESTDIR)$(MODPDIR)/xow-blacklist.conf
+	$(RM) $(DESTDIR)$(SYSDDIR)/xow.service
+
 .PHONY: clean
 clean:
 	$(RM) xow $(OBJECTS) $(DEPENDENCIES)
