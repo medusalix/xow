@@ -30,11 +30,25 @@
 #define GENMASK(h, l) ((~0UL - (1UL << l) + 1) & (~0UL >> (BITS_PER_LONG - 1 - h)))
 
 /*
- * Most of the defines and enums were copied from the Linux driver
- * Credits go to the following people:
- * Felix Fietkau <nbd@nbd.name>
- * Lorenzo Bianconi <lorenzo.bianconi83@gmail.com>
- * Stanislaw Gruszka <stf_xl@wp.pl>
+ * Most of the defines and enums were copied from OpenWrt's mt76 driver.
+ * Link to the repository: https://github.com/openwrt/mt76.
+ * The source code is released under the ISC license:
+ *
+ * Copyright (C) Felix Fietkau <nbd@nbd.name>
+ * Copyright (C) Lorenzo Bianconi <lorenzo.bianconi83@gmail.com>
+ * Copyright (C) Stanislaw Gruszka <stf_xl@wp.pl>
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHORS DISCLAIM ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY
+ * SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
+ * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+ * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 #define MT_ASIC_VERSION 0x0000
 
