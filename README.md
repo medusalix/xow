@@ -1,4 +1,4 @@
-# xow [![Build Status](https://img.shields.io/travis/com/medusalix/xow)](https://travis-ci.com/medusalix/xow) [![Release](https://img.shields.io/github/v/release/medusalix/xow)](https://github.com/medusalix/xow/releases/latest) [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=PLN6F3UGS37DE)
+# xow [![Build Status](https://img.shields.io/travis/com/medusalix/xow)](https://travis-ci.com/medusalix/xow) [![Release](https://img.shields.io/github/v/release/medusalix/xow)](https://github.com/medusalix/xow/releases/latest) [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=PLN6F3UGS37DE&lc=US)
 
 <p align="center">
   <img src="screenshot.png" alt="Screenshot">
