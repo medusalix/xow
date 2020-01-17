@@ -20,6 +20,7 @@ FIRMWARE_HASH := 48084d9fa53b9bb04358f3bb127b7495dc8f7bb0b3ca1437bd24ef2b6eabdf6
 PREFIX := /usr/local
 BINDIR := $(PREFIX)/bin
 UDEVDIR := /lib/udev/rules.d
+MODLDIR := /lib/modules-load.d
 MODPDIR := /lib/modprobe.d
 SYSDDIR := /lib/systemd/system
 
@@ -48,6 +49,7 @@ xow.service: xow.service.in
 install: xow xow.service
 	install -D -m 755 xow $(DESTDIR)$(BINDIR)/xow
 	install -D -m 644 xow-udev.rules $(DESTDIR)$(UDEVDIR)/99-xow.rules
+	install -D -m 644 xow-modules.conf $(DESTDIR)$(MODLDIR)/xow-uinput.conf
 	install -D -m 644 xow-modprobe.conf $(DESTDIR)$(MODPDIR)/xow-blacklist.conf
 	install -D -m 644 xow.service $(DESTDIR)$(SYSDDIR)/xow.service
 	$(RM) xow.service
@@ -56,6 +58,7 @@ install: xow xow.service
 uninstall:
 	$(RM) $(DESTDIR)$(BINDIR)/xow
 	$(RM) $(DESTDIR)$(UDEVDIR)/99-xow.rules
+	$(RM) $(DESTDIR)$(MODLDIR)/xow-uinput.conf
 	$(RM) $(DESTDIR)$(MODPDIR)/xow-blacklist.conf
 	$(RM) $(DESTDIR)$(SYSDDIR)/xow.service
 
