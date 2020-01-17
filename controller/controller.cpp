@@ -207,9 +207,12 @@ void Controller::packetReceived(const Bytes &packet)
         );
     }
 
+    // Elite controllers send a larger input packet
+    // The button remapping is done in hardware
+    // The "non-remapped" input is appended to the packet
     else if (
         frame->command == CMD_INPUT &&
-        frame->length == sizeof(InputData)
+        frame->length >= sizeof(InputData)
     ) {
         const InputData *input = packet.toStruct<InputData>(
             sizeof(ControllerFrame)

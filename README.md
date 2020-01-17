@@ -29,9 +29,9 @@ The following Xbox One controllers are currently compatible with the driver:
 |--------------|------|-------------------------|--------------|
 | 1537         | 2013 | Original controller     | **Broken**   |
 | 1697         | 2015 | Added audio jack        | **Working**  |
+| 1698         | 2015 | Elite controller        | **Working**  |
 | 1708         | 2016 | Bluetooth functionality | **Working**  |
-
-Elite controllers may be added in the future.
+| ????         | 2019 | Elite controller 2      | **Untested** |
 
 ## Planned features
 
