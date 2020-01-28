@@ -101,8 +101,12 @@ void Controller::feedbackReceived(ff_effect effect, uint16_t gain)
     }
 
     // Map Linux' magnitudes to rumble power
-    uint8_t weak = effect.u.rumble.weak_magnitude * gain / 0xffffff;
-    uint8_t strong = effect.u.rumble.strong_magnitude * gain / 0xffffff;
+    uint8_t weak = static_cast<uint32_t>(
+        effect.u.rumble.weak_magnitude
+    ) * gain / 0xffffff;
+    uint8_t strong = static_cast<uint32_t>(
+        effect.u.rumble.strong_magnitude
+    ) * gain / 0xffffff;
 
     Log::debug(
         "Feedback length: %d, delay: %d, direction: %d, weak: %d, strong: %d",
