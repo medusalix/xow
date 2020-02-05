@@ -16,13 +16,13 @@ In case of problems, please open an issue with all the relevant details (dongle 
 xow supports both versions of the wireless dongle (slim and bulky one).
 The following Xbox One controllers are currently compatible with the driver:
 
-| Model number | Year | Additional information  | Status       |
-|--------------|------|-------------------------|--------------|
-| 1537         | 2013 | Original controller     | **Broken**   |
-| 1697         | 2015 | Added audio jack        | **Working**  |
-| 1698         | 2015 | Elite controller        | **Working**  |
-| 1708         | 2016 | Bluetooth functionality | **Working**  |
-| ????         | 2019 | Elite controller 2      | **Untested** |
+| Model number | Year | Additional information    | Status       |
+|--------------|------|---------------------------|--------------|
+| 1537         | 2013 | Original controller       | **Broken**   |
+| 1697         | 2015 | Added audio jack          | **Working**  |
+| 1698         | 2015 | Elite controller          | **Working**  |
+| 1708         | 2016 | Bluetooth functionality   | **Working**  |
+| ????         | 2019 | Elite controller series 2 | **Working**  |
 
 ## Planned features
 
