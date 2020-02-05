@@ -70,6 +70,8 @@ sudo systemctl enable xow
 sudo systemctl start xow
 ```
 
+**NOTE:** A reboot might be required for xow to work correctly.
+
 **Option 2:** Run xow manually:
 
 ```
