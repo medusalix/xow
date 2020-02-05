@@ -39,10 +39,12 @@ Any **help/suggestions** regarding the planned features is much appreciated.
 
 ## Releases
 
-- [Arch Linux](https://aur.archlinux.org/packages/xow-git)
+- Arch Linux ([master](https://aur.archlinux.org/packages/xow-git), [stable](https://aur.archlinux.org/packages/xow))
+- Debian (coming soon)
+- Steam Link (starting with [build 747](https://steamcommunity.com/app/353380/discussions/0/1735510154204276395))
 
-Feel free to create prebuilt releases of xow for any package repository you like.
-Ideally, I would like to provide binaries for every major Linux distribution.
+Feel free to create prebuilt releases of xow for any Linux distribution or hardware you like.
+Any issues regarding the packaging should be reported to the respective maintainers.
 
 ## Building
 
