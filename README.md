@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="https://raw.githubusercontent.com/medusalix/xow/logo.png"
+    <img src="https://github.com/cristianovitorino/xow/blob/master/logo.png"
     alt="Xow"/>
 </p>
 
