@@ -1,0 +1,24 @@
+@media (min-width: 768px) {
+}
+
+#mainNav brand {
+}
+
+#mainNav .navbar-brand-heading:hover {
+	color: #ffffff;
+}
+
+#mainNav .nav {
+}
+
+@media (min-width: 1200px) {
+	#mainNav .brand-heading:hover {
+		color: #ffffff;
+	}
+}
+
+@media screen and (max-width: 768px) {
+	.rounded.img-fluid {
+		content: url('../../assets/img/logo-white.png');
+	}
+}
