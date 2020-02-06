@@ -97,7 +97,7 @@ The dongle's wireless chip (MT76xx) handles the WLAN connection with individual 
 The packet format follows Microsoft's undisclosed GIP (Game Input Protocol) specification.
 Most of the reverse engineering was done by capturing the communication between the dongle and a Windows PC using [`Wireshark`](https://www.wireshark.org).
 As no datasheets for this chip are publicly available, I have used datasheets of similar wireless radios for assistance.
-Special thanks to the authors of Linux' [`mt76`](https://github.com/torvalds/linux/tree/master/drivers/net/wireless/mediatek/mt76) kernel driver.
+Special thanks to the authors of OpenWrt's [`mt76`](https://github.com/openwrt/mt76) kernel driver.
 It would have been impossible for me to create this driver without `mt76`'s source code.
 If anyone has a greater understanding of the GIP or the weird quirks I had to add to make the driver work (like `initGain`), please contact me.
 
