@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>xow</title>
+    <meta name="twitter:description" content="Linux driver for the Xbox One wireless dongle">
+    <meta name="twitter:card" content="Linux driver for the Xbox One wireless dongle">
+    <meta name="description" content="Linux driver for the Xbox One wireless dongle">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="xow">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="180x180" href="assets/img/favicon-180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/img/favicon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="assets/img/favicon-512x512.png">
+    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Cabin:700">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Mono">
+    <link rel="stylesheet" href="assets/fonts/font-awesome.min.css">
+    <link rel="stylesheet" href="assets/css/custom.css">
+</head>
+
+<body id="page-top">
+    <header class="masthead" style="background-color: rgb(255,255,255);color: rgb(0,0,0);">
+        <div class="intro-body" style="background-color: #ffffff;">
+            <nav class="navbar navbar-light navbar-expand-md navbar navbar-expand-lg fixed-top" id="mainNav">
+                <div class="container"><a class="navbar-brand text-center js-scroll-trigger" style="width: 100%; margin-left: auto; margin-right: auto;"><img class="rounded img-fluid" style="margin-left: auto;margin-right: auto;width: 15%;" src="assets/img/logo-black.png"></a>
+                    <div
+                        class="collapse navbar-collapse" id="navbarResponsive">
+                        <ul class="nav navbar-nav ml-auto"></ul>
+                </div>
+        </div>
+        </nav>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 mx-auto" style="background-color: #ffffff;">
+                    <h1 class="brand-heading" style="font-family: 'Roboto Mono', monospace;font-size: 30px;color: rgb(0,0,0);">XOW</h1>
+                    <p class="text-center intro-text" style="font-family: 'Roboto Mono', monospace;color: rgb(0,0,0);font-weight: bold;">Linux driver for the Xbox One wireless dongle.</p><a class="btn btn-link btn-circle" role="button" href="#about" style="color: rgb(0,0,0);font-family: 'Roboto Mono', monospace;background-color: #ffffff;"><i class="fa fa-angle-double-down animated"></i></a></div>
+            </div>
+        </div>
+        </div>
+    </header>
+    <section id="about" class="content-section text-center" style="background-color: #ffffff;">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <h2 style="font-family: 'Roboto Mono', monospace;color: rgb(0,0,0);font-size: 30px;">About xow</h2>
+                    <p style="font-family: 'Roboto Mono', monospace;color: rgb(0,0,0);"><a href="https://github.com/medusalix/xow">xow</a> is a Linux user mode driver for the Xbox One wireless dongle. It communicates with the dongle via&nbsp;<em>libusb</em>&nbsp;and provides joystick input through the&nbsp;<em>uinput</em>&nbsp;kernel
+                        module. The input mapping is based on existing kernel drivers like&nbsp;<a href="https://github.com/paroj/xpad">xpad</a>.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section id="download" class="download-section content-section text-center" style="background-color: rgb(255,255,255);">
+        <div class="container">
+            <div class="col-lg-8 mx-auto">
+                <h1 style="color: rgb(0,0,0);font-family: 'Roboto Mono', monospace;font-size: 30px;">install xow</h1>
+                <div class="jumbotron" style="background-color: rgb(249,249,249);height: 180px;margin: 27px;padding: 26px;">
+                    <p class="text-left d-flex justify-content-center" style="color: rgb(92,92,92);font-family: 'Roboto Mono', monospace;font-size: 16px;">&gt; git clone https://github.com/medusalix/xow<br>&gt; make BUILD=RELEASE<br>&gt; sudo make install<br>&gt; sudo systemctl enable xow<br>&gt; sudo systemctl start xow</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section id="contact" class="content-section text-center" style="color: rgb(255,255,255);background-color: #ffffff;">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <h2 style="color: rgb(0,0,0);font-family: 'Roboto Mono', monospace;font-size: 30px;">Contact us</h2>
+                    <ul class="list-inline banner-social-buttons">
+                        <li class="list-inline-item">&nbsp;<a class="btn btn-primary btn-lg btn-default" role="button" href="https://github.com/medusalix/xow"><i class="fa fa-github fa-fw"></i><span class="network-name">&nbsp;github</span></a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+    <div class="map-clean"></div>
+    <footer>
+        <div class="container text-center">
+            <p style="color: rgb(255,255,255);font-family: 'Roboto Mono', monospace;"><strong>Copyright ©&nbsp;</strong><a href="https://medusalix.github.io/"><strong>Severin</strong></a></p>
+            <p style="color: rgb(255,255,255);font-family: 'Roboto Mono', monospace;"><strong>Logo and Web Design by </strong><a href="https://dribbble.com/cristianovitorino"><strong>Cristiano Vitorino</strong></a></p>
+        </div>
+    </footer>
+    <script src="assets/js/jquery.min.js"></script>
+    <script src="assets/bootstrap/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
+    <script src="assets/js/xow.js"></script>
+</body>
+
+</html>
