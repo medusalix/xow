@@ -47,7 +47,7 @@ private:
     void removed() override;
 
     void clientConnected(uint8_t wcid, Bytes address) override;
-    void clientDisconnected(uint8_t wcid, Bytes address) override;
+    void clientDisconnected(uint8_t wcid) override;
     void packetReceived(uint8_t wcid, const Bytes &packet) override;
 
     bool sendControllerPacket(

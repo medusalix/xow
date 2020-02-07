@@ -44,11 +44,6 @@ void Dongle::removed()
 
 void Dongle::clientConnected(uint8_t wcid, Bytes address)
 {
-    if (controllers[wcid - 1])
-    {
-        Log::debug("Controller '%d' reconnecting", wcid);
-    }
-
     auto sendPacket = std::bind(
         &Dongle::sendControllerPacket,
         this,
@@ -66,13 +61,13 @@ void Dongle::clientConnected(uint8_t wcid, Bytes address)
 
     catch (const ControllerException &exception)
     {
-        disassociateClient(wcid);
+        removeClient(wcid);
 
         Log::error("Error initializing controller: %s", exception.what());
     }
 }
 
-void Dongle::clientDisconnected(uint8_t wcid, Bytes address)
+void Dongle::clientDisconnected(uint8_t wcid)
 {
     if (!controllers[wcid - 1])
     {

@@ -104,6 +104,11 @@ public:
         data.clear();
     }
 
+    inline uint8_t operator[](size_t index) const
+    {
+        return data[index];
+    }
+
     inline bool operator==(const Bytes &other) const
     {
         return data == other.data;
