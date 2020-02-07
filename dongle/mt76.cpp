@@ -52,16 +52,11 @@ void MT76::added()
 void MT76::removed()
 {
     macAddress.clear();
-
-    for (Bytes &address : clients)
-    {
-        address.clear();
-    }
+    connectedWcids = 0;
 }
 
 void MT76::handleWlanPacket(const Bytes &packet)
 {
-    const RxWi *rxWi = packet.toStruct<RxWi>();
     const WlanFrame *wlanFrame = packet.toStruct<WlanFrame>(sizeof(RxWi));
 
     const Bytes source(
@@ -104,23 +99,6 @@ void MT76::handleWlanPacket(const Bytes &packet)
         }
 
         clientConnected(wcid, source);
-    }
-
-    else if (subtype == MT_WLAN_DISASSOC)
-    {
-        Log::debug(
-            "Client disassociating: %s",
-            Log::formatBytes(source).c_str()
-        );
-
-        if (!disassociateClient(rxWi->wcid))
-        {
-            Log::error("Failed to disassociate client");
-
-            return;
-        }
-
-        clientDisconnected(rxWi->wcid, source);
     }
 
     else if (subtype == MT_WLAN_PAIR)
@@ -169,6 +147,34 @@ void MT76::handleClientPacket(const Bytes &packet)
     packetReceived(rxWi->wcid, data);
 }
 
+void MT76::handleClientLost(const Bytes &packet)
+{
+    // Invalid packet
+    if (packet.size() < 1)
+    {
+        return;
+    }
+
+    uint8_t wcid = packet[0];
+
+    // Invalid WCID or not connected
+    if (!wcid || !(connectedWcids & BIT(wcid - 1)))
+    {
+        return;
+    }
+
+    Log::debug("Client lost: %d", wcid);
+
+    if (!removeClient(wcid))
+    {
+        Log::error("Failed to remove client");
+
+        return;
+    }
+
+    clientDisconnected(wcid);
+}
+
 void MT76::handleButtonPress()
 {
     // Start sending the 'pairing' beacon
@@ -203,12 +209,16 @@ void MT76::handleBulkPacket(const Bytes &packet)
     if (rxInfo->port == CPU_RX_PORT)
     {
         const RxInfoCommand *info = packet.toStruct<RxInfoCommand>();
+        const Bytes data(packet, sizeof(RxInfoCommand));
 
         if (info->eventType == EVT_PACKET_RX)
         {
-            const Bytes data(packet, sizeof(RxInfoCommand));
-
             handleClientPacket(data);
+        }
+
+        else if (info->eventType == EVT_CLIENT_LOST)
+        {
+            handleClientLost(data);
         }
 
         else if (info->eventType == EVT_BUTTON_PRESS)
@@ -232,27 +242,18 @@ void MT76::handleBulkPacket(const Bytes &packet)
 
 uint8_t MT76::associateClient(Bytes address)
 {
-    auto match = std::find(clients.begin(), clients.end(), address);
+    // Find first available WCID
+    uint16_t freeWcids = static_cast<uint16_t>(~connectedWcids);
+    uint8_t wcid = __builtin_ffs(freeWcids);
 
-    // Clients is not already connected
-    if (match == clients.end())
+    if (!wcid)
     {
-        // Find first unused WCID
-        match = std::find(clients.begin(), clients.end(), Bytes());
+        Log::error("All WCIDs are taken");
 
-        if (match == clients.end())
-        {
-            Log::error("All WCIDs are taken");
-
-            return 0;
-        }
-
-        *match = address;
+        return 0;
     }
 
-    uint8_t wcid = std::distance(clients.begin(), match) + 1;
-
-    Log::debug("Client identifier: %d", wcid);
+    connectedWcids |= BIT(wcid - 1);
 
     TxWi txWi = {};
 
@@ -299,7 +300,7 @@ uint8_t MT76::associateClient(Bytes address)
 
     if (!initGain(1, gain))
     {
-        Log::error("Failed to init association gain");
+        Log::error("Failed to init gain");
 
         return 0;
     }
@@ -321,17 +322,33 @@ uint8_t MT76::associateClient(Bytes address)
     return wcid;
 }
 
-bool MT76::disassociateClient(uint8_t wcid)
+bool MT76::removeClient(uint8_t wcid)
 {
     const Bytes emptyAddress = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    const Bytes gain = {
+        static_cast<uint8_t>(wcid - 1), 0x00, 0x00, 0x00
+    };
 
-    Log::debug("Client identifier: %d", wcid);
+    // Remove WCID from connected clients
+    connectedWcids &= ~BIT(wcid - 1);
 
-    clients[wcid].clear();
+    if (!initGain(2, gain))
+    {
+        Log::error("Failed to reset gain");
+
+        return false;
+    }
 
     if (!burstWrite(MT_WCID_ADDR(wcid), emptyAddress))
     {
         Log::error("Failed to write WCID");
+
+        return false;
+    }
+
+    if (!connectedWcids && !setLedMode(MT_LED_OFF))
+    {
+        Log::error("Failed to set LED mode");
 
         return false;
     }

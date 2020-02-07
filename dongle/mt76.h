@@ -882,6 +882,8 @@ enum McuEventType
     EVT_EVENT_DFS_DETECT_RSP,
     // Received a packet from a client
     EVT_PACKET_RX = 0x0c,
+    // Lost connection to a client
+    EVT_CLIENT_LOST = 0x0e,
     // Pressed the dongle's button
     EVT_BUTTON_PRESS = 0x04,
 };
@@ -1197,12 +1199,12 @@ protected:
 
     /* WLAN client callbacks */
     virtual void clientConnected(uint8_t wcid, Bytes address) = 0;
-    virtual void clientDisconnected(uint8_t wcid, Bytes address) = 0;
+    virtual void clientDisconnected(uint8_t wcid) = 0;
     virtual void packetReceived(uint8_t wcid, const Bytes &packet) = 0;
 
     /* WLAN client operations */
     uint8_t associateClient(Bytes address);
-    bool disassociateClient(uint8_t wcid);
+    bool removeClient(uint8_t wcid);
 
     bool sendCommand(McuCommand command, const Bytes &data);
 
@@ -1212,6 +1214,7 @@ private:
     /* Packet handling and transmission */
     void handleWlanPacket(const Bytes &packet);
     void handleClientPacket(const Bytes &packet);
+    void handleClientLost(const Bytes &packet);
     void handleButtonPress();
     void handleBulkPacket(const Bytes &packet);
     bool pairClient(Bytes address);
@@ -1251,8 +1254,7 @@ private:
     );
 
     FixedBytes<USB_BUFFER_SIZE> buffer, packetBuffer;
-
-    std::array<Bytes, MT_WCID_COUNT> clients;
+    uint16_t connectedWcids = 0;
 };
 
 class MT76Exception : public std::runtime_error
