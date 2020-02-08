@@ -5,20 +5,21 @@
 }
 
 #mainNav .navbar-brand-heading:hover {
-	color: #ffffff;
+  color: #ffffff;
 }
 
 #mainNav .nav {
 }
 
 @media (min-width: 1200px) {
-	#mainNav .brand-heading:hover {
-		color: #ffffff;
-	}
+  #mainNav .brand-heading:hover {
+    color: #ffffff;
+  }
 }
 
 @media screen and (max-width: 768px) {
-	.rounded.img-fluid {
-		content: url('../../assets/img/logo-white.png');
-	}
+  .rounded.img-fluid {
+    content: url('../../assets/img/logo-white.png');
+  }
 }
+
