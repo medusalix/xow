@@ -1,8 +1,24 @@
-# xow [![Build Status](https://img.shields.io/travis/com/medusalix/xow)](https://travis-ci.com/medusalix/xow) [![Release](https://img.shields.io/github/v/release/medusalix/xow)](https://github.com/medusalix/xow/releases/latest) [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=PLN6F3UGS37DE&lc=US)
+<p align="center">
+    <img src="logo.png" alt="Logo">
+</p>
+
+<p align="center">
+    <a href="https://travis-ci.com/medusalix/xow">
+        <img src="https://img.shields.io/travis/com/medusalix/xow" alt="Build Badge">
+    </a>
+    <a href="https://github.com/medusalix/xow/releases/latest">
+        <img src="https://img.shields.io/github/v/release/medusalix/xow" alt="Release Badge">
+    </a>
+    <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=PLN6F3UGS37DE&lc=US">
+        <img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" alt="Donate Button">
+    </a>
+</p>
 
 <p align="center">
   <img src="screenshot.png" alt="Screenshot">
 </p>
+
+## About
 
 xow is a Linux user mode driver for the Xbox One wireless dongle.
 It communicates with the dongle via `libusb` and provides joystick input through the `uinput` kernel module.
