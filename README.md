@@ -1,17 +1,16 @@
 <p align="center">
-    <img src="https://github.com/cristianovitorino/xow/blob/master/logo.png"
-    alt="Xow"/>
+    <img src="logo.png" alt="Logo">
 </p>
 
 <p align="center">
-    <a href="https://travis-ci.com/medusalix/xow" alt="Build Badge">
-        <img src="https://img.shields.io/travis/com/medusalix/xow">
+    <a href="https://travis-ci.com/medusalix/xow">
+        <img src="https://img.shields.io/travis/com/medusalix/xow" alt="Build Badge">
     </a>
-    <a href="https://github.com/medusalix/xow/releases/latest" alt="Build Badge">
-        <img src="https://img.shields.io/github/v/release/medusalix/xow" akt="Release Badge">
+    <a href="https://github.com/medusalix/xow/releases/latest">
+        <img src="https://img.shields.io/github/v/release/medusalix/xow" alt="Release Badge">
     </a>
-    <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=PLN6F3UGS37DE&lc=US" alt="Build Badge">
-        <img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" akt="Donate Button">
+    <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=PLN6F3UGS37DE&lc=US">
+        <img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" alt="Donate Button">
     </a>
 </p>
 
