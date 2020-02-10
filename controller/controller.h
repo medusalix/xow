@@ -191,6 +191,7 @@ private:
         uint16_t gain
     ) override;
 
+    void setupInput();
     void reportInput(const InputData *input);
 
     bool acknowledgePacket(const ControllerFrame *packet = nullptr);

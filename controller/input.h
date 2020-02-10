@@ -31,6 +31,12 @@
 class InputDevice
 {
 protected:
+    struct AxisConfig
+    {
+        int32_t minimum, maximum;
+        int32_t fuzz, flat;
+    };
+
     InputDevice();
     virtual ~InputDevice();
 
@@ -40,7 +46,7 @@ protected:
     ) = 0;
 
     void addKey(uint16_t code);
-    void addAxis(uint16_t code, int32_t min, int32_t max);
+    void addAxis(uint16_t code, AxisConfig config);
     void addFeedback(uint16_t code);
 
     void create(
