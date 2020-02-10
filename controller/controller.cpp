@@ -28,18 +28,6 @@
 #define CONTROLLER_PID 0x02ea
 #define CONTROLLER_NAME "Xbox One Wireless Controller"
 
-// 16 bits (signed) for the stick
-#define STICK_MIN -32768
-#define STICK_MAX 32767
-
-// 10 bits (unsigned) for the trigger
-#define TRIGGER_MIN 0
-#define TRIGGER_MAX 1023
-
-// 1 bit for the DPAD
-#define DPAD_MIN -1
-#define DPAD_MAX 1
-
 Controller::Controller(SendPacket sendPacket) : sendPacket(sendPacket)
 {
     if (!acknowledgePacket() || !setPowerMode(POWER_ON))
@@ -64,25 +52,7 @@ Controller::Controller(SendPacket sendPacket) : sendPacket(sendPacket)
         throw ControllerException("Failed to request serial number");
     }
 
-    addKey(BTN_MODE);
-    addKey(BTN_START);
-    addKey(BTN_SELECT);
-    addKey(BTN_A);
-    addKey(BTN_B);
-    addKey(BTN_X);
-    addKey(BTN_Y);
-    addKey(BTN_TL);
-    addKey(BTN_TR);
-    addKey(BTN_THUMBL);
-    addKey(BTN_THUMBR);
-    addAxis(ABS_X, STICK_MIN, STICK_MAX);
-    addAxis(ABS_RX, STICK_MIN, STICK_MAX);
-    addAxis(ABS_Y, STICK_MIN, STICK_MAX);
-    addAxis(ABS_RY, STICK_MIN, STICK_MAX);
-    addAxis(ABS_Z, TRIGGER_MIN, TRIGGER_MAX);
-    addAxis(ABS_RZ, TRIGGER_MIN, TRIGGER_MAX);
-    addAxis(ABS_HAT0X, DPAD_MIN, DPAD_MAX);
-    addAxis(ABS_HAT0Y, DPAD_MIN, DPAD_MAX);
+    setupInput();
     addFeedback(FF_RUMBLE);
     create(CONTROLLER_VID, CONTROLLER_PID, CONTROLLER_NAME);
     readEvents();
@@ -145,6 +115,51 @@ void Controller::feedbackReceived(ff_effect effect, uint16_t gain)
     performRumble(rumble);
 
     rumbling = gain > 0;
+}
+
+void Controller::setupInput()
+{
+    AxisConfig stickConfig = {};
+
+    // 16 bits (signed) for the sticks
+    stickConfig.minimum = -32768;
+    stickConfig.maximum = 32767;
+    stickConfig.fuzz = 255;
+    stickConfig.flat = 4095;
+
+    AxisConfig triggerConfig = {};
+
+    // 10 bits (unsigned) for the triggers
+    triggerConfig.minimum = 0;
+    triggerConfig.maximum = 1023;
+    triggerConfig.fuzz = 3;
+    triggerConfig.flat = 63;
+
+    AxisConfig dpadConfig = {};
+
+    // 1 bit for the DPAD buttons
+    dpadConfig.minimum = -1;
+    dpadConfig.maximum = 1;
+
+    addKey(BTN_MODE);
+    addKey(BTN_START);
+    addKey(BTN_SELECT);
+    addKey(BTN_A);
+    addKey(BTN_B);
+    addKey(BTN_X);
+    addKey(BTN_Y);
+    addKey(BTN_TL);
+    addKey(BTN_TR);
+    addKey(BTN_THUMBL);
+    addKey(BTN_THUMBR);
+    addAxis(ABS_X, stickConfig);
+    addAxis(ABS_RX, stickConfig);
+    addAxis(ABS_Y, stickConfig);
+    addAxis(ABS_RY, stickConfig);
+    addAxis(ABS_Z, triggerConfig);
+    addAxis(ABS_RZ, triggerConfig);
+    addAxis(ABS_HAT0X, dpadConfig);
+    addAxis(ABS_HAT0Y, dpadConfig);
 }
 
 void Controller::reportInput(const InputData *input)
