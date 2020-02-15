@@ -742,8 +742,8 @@
 #define MT_EF_MAC_ADDR 0x00
 #define MT_EF_XTAL_CALIB 0x90
 
-// Burst write offset
-#define MT_BURST_WRITE 0x410000
+// Register offset in memory
+#define MT_REG_OFFSET 0x410000
 
 /*
  * The MT76 supports the following channels:
@@ -770,7 +770,7 @@
 #define MT_WLAN_ASSOC_REQ 0x00
 #define MT_WLAN_ASSOC_RESP 0x01
 #define MT_WLAN_DISASSOC 0x0a
-#define MT_WLAN_PAIR 0x07
+#define MT_WLAN_RESERVED 0x07
 #define MT_WLAN_BEACON 0x08
 #define MT_WLAN_QOS_DATA 0x08
 
@@ -938,7 +938,7 @@ struct BeaconFrame
     uint16_t ssid;
 } __attribute__((packed));
 
-struct PairingFrame
+struct ReservedFrame
 {
     uint8_t unknown;
     uint8_t type;
