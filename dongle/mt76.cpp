@@ -358,7 +358,11 @@ bool MT76::removeClient(uint8_t wcid)
 
 bool MT76::pairClient(Bytes address)
 {
-    const Bytes data = { 0x70, 0x02, 0x00 };
+    const Bytes data = {
+        0x70, 0x02, 0x00, 0x45,
+        0x55, 0x01, 0x0f, 0x8f,
+        0xff, 0x87, 0x1f
+    };
 
     TxWi txWi = {};
 
@@ -400,7 +404,7 @@ bool MT76::sendWlanPacket(const Bytes &data)
     // Values must be 32-bit aligned
     // 32 zero-bits mark the end
     uint32_t length = data.size();
-    uint8_t padding = length % sizeof(uint32_t);
+    uint8_t padding = sizeof(uint32_t) - length % sizeof(uint32_t);
 
     TxInfoPacket info = {};
 
@@ -934,7 +938,7 @@ bool MT76::sendCommand(McuCommand command, const Bytes &data)
     // Values must be 32-bit aligned
     // 32 zero-bits mark the end
     uint32_t length = data.size();
-    uint8_t padding = length % sizeof(uint32_t);
+    uint8_t padding = sizeof(uint32_t) - length % sizeof(uint32_t);
 
     // We ignore responses, sequence number is always zero
     TxInfoCommand info = {};
