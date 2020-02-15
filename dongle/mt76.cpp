@@ -101,14 +101,16 @@ void MT76::handleWlanPacket(const Bytes &packet)
         clientConnected(wcid, source);
     }
 
-    else if (subtype == MT_WLAN_PAIR)
+    // Reserved frames are used for different purposes
+    // Most of them are yet to be discovered
+    else if (subtype == MT_WLAN_RESERVED)
     {
-        const PairingFrame *pairingFrame = packet.toStruct<PairingFrame>(
+        const ReservedFrame *frame = packet.toStruct<ReservedFrame>(
             sizeof(RxWi) + sizeof(WlanFrame)
         );
 
-        // Pairing frame 'unknown' is always 0x70, 'type' is 0x01 for pairing
-        if (pairingFrame->type != 0x01)
+        // Type 0x01 is for pairing requests
+        if (frame->type != 0x01)
         {
             return;
         }
@@ -377,7 +379,7 @@ bool MT76::pairClient(Bytes address)
     WlanFrame wlanFrame = {};
 
     wlanFrame.frameControl.type = MT_WLAN_MGMT;
-    wlanFrame.frameControl.subtype = MT_WLAN_PAIR;
+    wlanFrame.frameControl.subtype = MT_WLAN_RESERVED;
 
     address.copy(wlanFrame.destination);
     macAddress.copy(wlanFrame.source);
@@ -583,12 +585,13 @@ void MT76::loadFirmware()
     Bytes::Iterator dlmStart = ilmStart + header->ilmLength;
     Bytes::Iterator dlmEnd = dlmStart + header->dlmLength;
 
-    // Upload firmware parts (ILM and DLM)
+    // Upload instruction local memory (ILM)
     if (!loadFirmwarePart(MT_MCU_ILM_OFFSET, ilmStart, dlmStart))
     {
         throw MT76Exception("Failed to write ILM");
     }
 
+    // Upload data local memory (DLM)
     if (!loadFirmwarePart(MT_MCU_DLM_OFFSET, dlmStart, dlmEnd))
     {
         throw MT76Exception("Failed to write DLM");
@@ -843,7 +846,7 @@ bool MT76::loadCr(McuCrMode mode)
 
 bool MT76::burstWrite(uint32_t index, const Bytes &values)
 {
-    index += MT_BURST_WRITE;
+    index += MT_REG_OFFSET;
 
     Bytes data;
 
