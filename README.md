@@ -68,6 +68,7 @@ Any **help/suggestions** regarding the planned features is much appreciated.
 
 - Arch Linux ([master](https://aur.archlinux.org/packages/xow-git), [stable](https://aur.archlinux.org/packages/xow))
 - Debian (coming soon)
+- GamerOS (starting with [version 13](https://github.com/gamer-os/gamer-os/releases/tag/13))
 - Steam Link (starting with [build 747](https://steamcommunity.com/app/353380/discussions/0/1735510154204276395))
 
 Feel free to create prebuilt releases of xow for any Linux distribution or hardware you like.
