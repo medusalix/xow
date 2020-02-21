@@ -145,7 +145,7 @@
 #define MT_INT_RX_DONE(_n) BIT(_n)
 #define MT_INT_RX_DONE_ALL GENMASK(1, 0)
 #define MT_INT_TX_DONE_ALL GENMASK(13, 4)
-#define MT_INT_TX_DONE(_n) BIT(_n + 4)
+#define MT_INT_TX_DONE(_n) BIT((_n) + 4)
 #define MT_INT_RX_COHERENT BIT(16)
 #define MT_INT_TX_COHERENT BIT(17)
 #define MT_INT_ANY_COHERENT BIT(18)
@@ -188,7 +188,7 @@
 
 #define MT_WMM_TXOP_BASE 0x0220
 #define MT_WMM_TXOP(_n) (MT_WMM_TXOP_BASE + (((_n) / 2) << 2))
-#define MT_WMM_TXOP_SHIFT(_n) ((_n & 1) * 16)
+#define MT_WMM_TXOP_SHIFT(_n) (((_n) & 1) * 16)
 #define MT_WMM_TXOP_MASK GENMASK(15, 0)
 
 #define MT_FCE_DMA_ADDR 0x0230
@@ -270,15 +270,9 @@
 #define MT_LED_S0(_n) (MT_LED_S0_BASE + 8 * (_n))
 #define MT_LED_S1_BASE 0x0780
 #define MT_LED_S1(_n) (MT_LED_S1_BASE + 8 * (_n))
-#define MT_LED_STATUS_OFF_MASK GENMASK(31, 24)
-#define MT_LED_STATUS_OFF(_v) (((_v) << __ffs(MT_LED_STATUS_OFF_MASK)) & \
-    MT_LED_STATUS_OFF_MASK)
-#define MT_LED_STATUS_ON_MASK GENMASK(23, 16)
-#define MT_LED_STATUS_ON(_v) (((_v) << __ffs(MT_LED_STATUS_ON_MASK)) & \
-    MT_LED_STATUS_ON_MASK)
-#define MT_LED_STATUS_DURATION_MASK GENMASK(15, 8)
-#define MT_LED_STATUS_DURATION(_v) (((_v) << __ffs(MT_LED_STATUS_DURATION_MASK)) & \
-    MT_LED_STATUS_DURATION_MASK)
+#define MT_LED_STATUS_OFF GENMASK(31, 24)
+#define MT_LED_STATUS_ON GENMASK(23, 16)
+#define MT_LED_STATUS_DURATION GENMASK(15, 8)
 
 #define MT_FCE_PSE_CTRL 0x0800
 #define MT_FCE_PARAMETERS 0x0804
@@ -505,8 +499,8 @@
 #define MT_PROT_RATE_SGI_OFDM_24 0x2104
 #define MT_PROT_TXOP_ALLOW_ALL GENMASK(25, 20)
 #define MT_PROT_TXOP_ALLOW_BW20 (MT_PROT_TXOP_ALLOW_ALL & \
-    ~MT_PROT_TXOP_ALLOW_MM40 & \
-    ~MT_PROT_TXOP_ALLOW_GF40)
+ ~MT_PROT_TXOP_ALLOW_MM40 & \
+ ~MT_PROT_TXOP_ALLOW_GF40)
 
 #define MT_EXP_ACK_TIME 0x1380
 
@@ -629,7 +623,7 @@
 
 #define MT_TX_AGG_CNT(_id) ((_id) < 8 ? \
     MT_TX_AGG_CNT_BASE0 + ((_id) << 2) : \
-    MT_TX_AGG_CNT_BASE1 + ((_id - 8) << 2))
+    MT_TX_AGG_CNT_BASE1 + (((_id) - 8) << 2))
 
 #define MT_TX_STAT_FIFO_EXT 0x1798
 #define MT_TX_STAT_FIFO_EXT_RETRY GENMASK(7, 0)
@@ -702,17 +696,17 @@
 
 #define MT_SKEY_BASE_0 0xac00
 #define MT_SKEY_BASE_1 0xb400
-#define MT_SKEY_0(_bss, _idx) (MT_SKEY_BASE_0 + (4 * (_bss) + _idx) * 32)
-#define MT_SKEY_1(_bss, _idx) (MT_SKEY_BASE_1 + (4 * ((_bss) & 7) + _idx) * 32)
-#define MT_SKEY(_bss, _idx) ((_bss & 8) ? MT_SKEY_1(_bss, _idx) : MT_SKEY_0(_bss, _idx))
+#define MT_SKEY_0(_bss, _idx) (MT_SKEY_BASE_0 + (4 * (_bss) + (_idx)) * 32)
+#define MT_SKEY_1(_bss, _idx) (MT_SKEY_BASE_1 + (4 * ((_bss) & 7) + (_idx)) * 32)
+#define MT_SKEY(_bss, _idx) (((_bss) & 8) ? MT_SKEY_1(_bss, _idx) : MT_SKEY_0(_bss, _idx))
 
 #define MT_SKEY_MODE_BASE_0 0xb000
 #define MT_SKEY_MODE_BASE_1 0xb3f0
-#define MT_SKEY_MODE_0(_bss) (MT_SKEY_MODE_BASE_0 + ((_bss / 2) << 2))
+#define MT_SKEY_MODE_0(_bss) (MT_SKEY_MODE_BASE_0 + (((_bss) / 2) << 2))
 #define MT_SKEY_MODE_1(_bss) (MT_SKEY_MODE_BASE_1 + ((((_bss) & 7) / 2) << 2))
-#define MT_SKEY_MODE(_bss) ((_bss & 8) ? MT_SKEY_MODE_1(_bss) : MT_SKEY_MODE_0(_bss))
+#define MT_SKEY_MODE(_bss) (((_bss) & 8) ? MT_SKEY_MODE_1(_bss) : MT_SKEY_MODE_0(_bss))
 #define MT_SKEY_MODE_MASK GENMASK(3, 0)
-#define MT_SKEY_MODE_SHIFT(_bss, _idx) (4 * ((_idx) + 4 * (_bss & 1)))
+#define MT_SKEY_MODE_SHIFT(_bss, _idx) (4 * ((_idx) + 4 * ((_bss) & 1)))
 
 #define MT_BEACON_BASE 0xc000
 
