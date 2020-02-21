@@ -30,16 +30,16 @@ void Dongle::added()
     Log::info("Dongle initialized");
 }
 
-void Dongle::removed()
+void Dongle::terminate()
 {
-    MT76::removed();
-
     for (std::unique_ptr<Controller> &controller : controllers)
     {
         controller.reset();
     }
 
-    Log::info("Dongle removed");
+    MT76::terminate();
+
+    Log::info("Dongle disconnected");
 }
 
 void Dongle::clientConnected(uint8_t wcid, Bytes address)

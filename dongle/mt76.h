@@ -1195,7 +1195,7 @@ class MT76 : public UsbDevice
 {
 protected:
     virtual void added() override;
-    virtual void removed() override;
+    virtual void terminate() override;
 
     /* WLAN client callbacks */
     virtual void clientConnected(uint8_t wcid, Bytes address) = 0;

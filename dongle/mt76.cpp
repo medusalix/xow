@@ -28,6 +28,9 @@ extern uint8_t _binary_firmware_bin_end[];
 
 void MT76::added()
 {
+    macAddress.clear();
+    connectedWcids = 0;
+
     loadFirmware();
     initChip();
 
@@ -49,10 +52,17 @@ void MT76::added()
     }).detach();
 }
 
-void MT76::removed()
+void MT76::terminate()
 {
-    macAddress.clear();
-    connectedWcids = 0;
+    if (!setLedMode(MT_LED_OFF))
+    {
+        Log::error("Failed to turn off LED");
+    }
+
+    if (!powerMode(RADIO_OFF))
+    {
+        Log::error("Failed to turn off radio");
+    }
 }
 
 void MT76::handleWlanPacket(const Bytes &packet)
@@ -672,12 +682,6 @@ void MT76::initChip()
     if (!initRegisters())
     {
         throw MT76Exception("Failed to init registers");
-    }
-
-    // Turn off LED
-    if (!setLedMode(MT_LED_OFF))
-    {
-        throw MT76Exception("Failed to turn off LED");
     }
 
     controlWrite(MT_MAC_SYS_CTRL, 0);
