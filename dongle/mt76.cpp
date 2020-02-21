@@ -408,6 +408,21 @@ bool MT76::pairClient(Bytes address)
         return false;
     }
 
+    // Stop sending the 'pairing' beacon
+    if (!writeBeacon())
+    {
+        Log::error("Failed to write beacon");
+
+        return false;
+    }
+
+    if (!setLedMode(MT_LED_ON))
+    {
+        Log::error("Failed to set LED mode");
+
+        return false;
+    }
+
     return true;
 }
 
