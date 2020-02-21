@@ -182,6 +182,7 @@ private:
 
 public:
     Controller(SendPacket sendPacket);
+    virtual ~Controller();
 
     void packetReceived(const Bytes &packet);
 

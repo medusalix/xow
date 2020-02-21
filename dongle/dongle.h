@@ -44,7 +44,7 @@ class Dongle : public MT76
 {
 private:
     void added() override;
-    void removed() override;
+    void terminate() override;
 
     void clientConnected(uint8_t wcid, Bytes address) override;
     void clientDisconnected(uint8_t wcid) override;

@@ -33,11 +33,11 @@ int main()
         UsbDeviceManager manager;
         Dongle dongle;
 
-        manager.registerDevice(&dongle, {
+        manager.registerDevice(dongle, {
             { DONGLE_VID, DONGLE_PID_OLD },
             { DONGLE_VID, DONGLE_PID_NEW }
         });
-        manager.handleEvents();
+        manager.handleEvents(dongle);
     }
 
     catch (const std::runtime_error &exception)

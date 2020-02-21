@@ -55,7 +55,7 @@ protected:
     };
 
     virtual void added() = 0;
-    virtual void removed() = 0;
+    virtual void terminate() = 0;
 
     void controlTransfer(ControlPacket packet);
     void bulkReadAsync(
@@ -76,7 +76,7 @@ private:
 };
 
 /*
- * Registers hotplugs and handles libusb events
+ * Registers hotplugs, handles libusb events and signals
  */
 class UsbDeviceManager
 {
@@ -89,10 +89,10 @@ public:
     UsbDeviceManager();
 
     void registerDevice(
-        UsbDevice *device,
+        UsbDevice &device,
         std::initializer_list<HardwareId> ids
     );
-    void handleEvents();
+    void handleEvents(UsbDevice &device);
 
 private:
     static int hotplugCallback(
@@ -101,10 +101,15 @@ private:
         libusb_hotplug_event event,
         void *userData
     );
+
+    int signalFile;
+
+    libusb_hotplug_callback_handle hotplugHandle;
 };
 
 class UsbException : public std::runtime_error
 {
 public:
     UsbException(std::string message, int error);
+    UsbException(std::string message, std::string error);
 };

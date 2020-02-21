@@ -141,7 +141,7 @@ void InputDevice::readEvents()
     polls[0].events = POLLIN;
     polls[1].events = POLLIN;
 
-    std::thread([=]() mutable
+    std::thread([this, polls]() mutable
     {
         while (poll(polls, 2, -1) > 0)
         {
