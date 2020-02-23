@@ -580,9 +580,18 @@ void MT76::loadFirmware()
 {
     if (controlRead(MT_FCE_DMA_ADDR, MT_VEND_READ_CFG))
     {
-        Log::debug("Firmware already loaded");
+        Log::debug("Firmware already loaded, resetting...");
 
-        return;
+        uint32_t patch = controlRead(MT_RF_PATCH, MT_VEND_READ_CFG);
+
+        patch &= ~BIT(19);
+
+        // Mandatory for already initialized radios
+        controlWrite(MT_RF_PATCH, patch, MT_VEND_WRITE_CFG);
+        controlWrite(MT_FW_RESET_IVB, 0, MT_VEND_DEV_MODE);
+
+        // Wait for firmware to reset
+        while (controlRead(MT_FCE_DMA_ADDR, MT_VEND_READ_CFG) != 0x80000000);
     }
 
     DmaConfig config = {};

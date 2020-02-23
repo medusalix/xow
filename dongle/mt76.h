@@ -724,8 +724,12 @@
 // Read/write timeout
 #define MT_TIMEOUT 1000
 
+// Power-on RF patch
+#define MT_RF_PATCH 0x0130
+
 // Firmware defines
-// DLM offset differs from Linux source
+// DLM offset differs from OpenWrt source
+#define MT_FW_RESET_IVB 0x01
 #define MT_MCU_ILM_OFFSET 0x80000
 #define MT_MCU_DLM_OFFSET 0x100000 + 0x10800
 #define MT_FW_CHUNK_SIZE 0x3800
