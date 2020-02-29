@@ -87,8 +87,7 @@ make BUILD=RELEASE
 
 ```
 sudo make install
-sudo systemctl enable xow
-sudo systemctl start xow
+sudo systemctl enable xow --now
 ```
 
 **NOTE:** A reboot might be required for xow to work correctly.
