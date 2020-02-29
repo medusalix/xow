@@ -498,8 +498,7 @@ bool MT76::initRegisters()
     controlWrite(MT_TX_PIN_CFG, 0x150f0f);
     controlWrite(MT_TX_SW_CFG0, 0x101001);
     controlWrite(MT_TX_SW_CFG1, 0x010000);
-    controlWrite(MT_TXOP_CTRL_CFG, 0x583f);
-    controlWrite(MT_TX_RTS_CFG, 0x092b20);
+    controlWrite(MT_TXOP_CTRL_CFG, 0x10583f);
     controlWrite(MT_TX_TIMEOUT_CFG, 0x0a0f90);
     controlWrite(MT_TX_RETRY_CFG, 0x47d01f0f);
     controlWrite(MT_CCK_PROT_CFG, 0x03f40003);
@@ -508,13 +507,10 @@ bool MT76::initRegisters()
     controlWrite(MT_GF20_PROT_CFG, 0x01742004);
     controlWrite(MT_GF40_PROT_CFG, 0x03f42084);
     controlWrite(MT_EXP_ACK_TIME, 0x2c00dc);
-    controlWrite(MT_TX0_RF_GAIN_ATTEN, 0x22160a00);
+    controlWrite(MT_TX_ALC_CFG_2, 0x22160a00);
     controlWrite(MT_TX_ALC_CFG_3, 0x22160a76);
     controlWrite(MT_TX_ALC_CFG_0, 0x3f3f1818);
     controlWrite(MT_TX_ALC_CFG_4, 0x80000606);
-    controlWrite(MT_TX_PROT_CFG6, 0xe3f52004);
-    controlWrite(MT_TX_PROT_CFG7, 0xe3f52084);
-    controlWrite(MT_TX_PROT_CFG8, 0xe3f52104);
     controlWrite(MT_PIFS_TX_CFG, 0x060fff);
     controlWrite(MT_RX_FILTR_CFG, 0x015f9f);
     controlWrite(MT_LEGACY_BASIC_RATE, 0x017f);
@@ -535,8 +531,15 @@ bool MT76::initRegisters()
     controlWrite(MT_FCE_L2_STUFF, 0x03ff0223);
     controlWrite(MT_TX_RTS_CFG, 0);
     controlWrite(MT_BEACON_TIME_CFG, 0x0640);
-    controlWrite(MT_CMB_CTRL, 0x0091a7ff);
-    controlWrite(MT_BBP(TXBE, 5), 0);
+    controlWrite(MT_EXT_CCA_CFG, 0x0000f0e4);
+    controlWrite(MT_CH_TIME_CFG, 0x0000015f);
+
+    // Calibrate internal crystal oscillator
+    calibrateCrystal();
+
+    // Setup automatic gain control (AGC)
+    controlWrite(MT_BBP(AGC, 8), 0x18365efa);
+    controlWrite(MT_BBP(AGC, 9), 0x18365efa);
 
     // Necessary for reliable WLAN associations
     controlWrite(MT_RF_BYPASS_0, 0x7f000000);
@@ -544,18 +547,7 @@ bool MT76::initRegisters()
     controlWrite(MT_RF_BYPASS_0, 0);
     controlWrite(MT_RF_SETTING_0, 0);
 
-    // Read crystal calibration from EFUSE
-    uint32_t calibration = efuseRead(MT_EF_XTAL_CALIB, 3) >> 16;
-
-    controlWrite(MT_XO_CTRL5, calibration, MT_VEND_WRITE_CFG);
-    controlWrite(MT_XO_CTRL6, MT_XO_CTRL6_C2_CTRL, MT_VEND_WRITE_CFG);
-
-    // Read MAC address from EFUSE
-    uint32_t macAddress1 = efuseRead(MT_EF_MAC_ADDR, 1);
-    uint32_t macAddress2 = efuseRead(MT_EF_MAC_ADDR, 2);
-
-    macAddress.append(macAddress1, 4);
-    macAddress.append(macAddress2, 2);
+    macAddress = efuseRead(MT_EE_MAC_ADDR, 6);
 
     if (!burstWrite(MT_MAC_ADDR_DW0, macAddress))
     {
@@ -571,7 +563,84 @@ bool MT76::initRegisters()
         return false;
     }
 
-    Log::info("Chip address: %s", Log::formatBytes(macAddress).c_str());
+    uint16_t version = controlRead(MT_ASIC_VERSION) >> 16;
+    Bytes chipId = efuseRead(MT_EE_CHIP_ID, sizeof(uint32_t));
+    uint16_t id = (chipId[1] << 8) | chipId[2];
+
+    Log::debug("ASIC version: %x", version);
+    Log::debug("Chip id: %x", id);
+    Log::info("Wireless address: %s", Log::formatBytes(macAddress).c_str());
+
+    return true;
+}
+
+void MT76::calibrateCrystal()
+{
+    Bytes trim = efuseRead(MT_EE_XTAL_TRIM_2, sizeof(uint32_t));
+    uint16_t value = (trim[3] << 8) | trim[2];
+	int8_t offset = value & 0x7f;
+
+	if ((value & 0xff) == 0xff)
+    {
+		offset = 0;
+    }
+
+	else if (value & 0x80)
+    {
+		offset = -offset;
+    }
+
+	value >>= 8;
+
+	if (value == 0x00 || value == 0xff)
+    {
+		trim = efuseRead(MT_EE_XTAL_TRIM_1, sizeof(uint32_t));
+        value = (trim[3] << 8) | trim[2];
+		value &= 0xff;
+
+		if (value == 0x00 || value == 0xff)
+        {
+			value = 0x14;
+        }
+	}
+
+	value = (value & 0x7f) + offset;
+
+    uint32_t ctrl = controlRead(MT_XO_CTRL5) & ~MT_XO_CTRL5_C2_VAL;
+
+	controlWrite(MT_XO_CTRL5, ctrl | (value << 8), MT_VEND_WRITE_CFG);
+	controlWrite(MT_XO_CTRL6, MT_XO_CTRL6_C2_CTRL, MT_VEND_WRITE_CFG);
+    controlWrite(MT_CMB_CTRL, 0x0091a7ff);
+}
+
+bool MT76::setupChannelCandidates()
+{
+    // List of wireless channel candidates
+    // The left column maybe specifies the priority
+    // The right column contains the channels
+    Bytes candidates = {
+        0x01, 0xa5,
+        0x0b, 0x01,
+        0x06, 0x0b,
+        0x24, 0x28,
+        0x2c, 0x30,
+        0x95, 0x99,
+        0x9d, 0xa1
+    };
+    Bytes values;
+
+    // Map channels to 32-bit values
+    for (uint32_t channel : candidates)
+    {
+        values.append(channel);
+    }
+
+    if (!initGain(7, values))
+    {
+        Log::error("Failed to send channel candidates");
+
+        return false;
+    }
 
     return true;
 }
@@ -687,10 +756,6 @@ bool MT76::loadFirmwarePart(
 
 void MT76::initChip()
 {
-    uint16_t version = controlRead(MT_ASIC_VERSION) >> 16;
-
-    Log::debug("Chip version: %x", version);
-
     // Select RX ring buffer 1
     // Turn radio on
     // Load BBP command register
@@ -702,7 +767,6 @@ void MT76::initChip()
         throw MT76Exception("Failed to init radio");
     }
 
-    // Write initial register values
     if (!initRegisters())
     {
         throw MT76Exception("Failed to init registers");
@@ -710,7 +774,6 @@ void MT76::initChip()
 
     controlWrite(MT_MAC_SYS_CTRL, 0);
 
-    // Calibrate chip
     if (
         !calibrate(MCU_CAL_TEMP_SENSOR, 0) ||
         !calibrate(MCU_CAL_RXDCOC, 1) ||
@@ -724,22 +787,24 @@ void MT76::initChip()
         MT_MAC_SYS_CTRL_ENABLE_TX | MT_MAC_SYS_CTRL_ENABLE_RX
     );
 
-    // Set default channel
     if (!switchChannel(MT_CHANNEL))
     {
         throw MT76Exception("Failed to set channel");
     }
 
-    // Write MAC address
     if (!initGain(0, macAddress))
     {
         throw MT76Exception("Failed to init gain");
     }
 
-    // Start beacon transmission
     if (!writeBeacon())
     {
         throw MT76Exception("Failed to write beacon");
+    }
+
+    if (!setupChannelCandidates())
+    {
+        throw MT76Exception("Failed to setup channel candidates");
     }
 }
 
@@ -996,7 +1061,7 @@ bool MT76::sendCommand(McuCommand command, const Bytes &data)
     return true;
 }
 
-uint32_t MT76::efuseRead(uint8_t address, uint8_t index)
+Bytes MT76::efuseRead(uint8_t address, uint8_t length)
 {
     EfuseControl control = {};
 
@@ -1004,14 +1069,28 @@ uint32_t MT76::efuseRead(uint8_t address, uint8_t index)
     // Kick-off read
     control.value = controlRead(MT_EFUSE_CTRL);
     control.props.mode = 0;
-    control.props.addressIn = address;
+    control.props.addressIn = address & 0xf0;
     control.props.kick = 1;
 
     controlWrite(MT_EFUSE_CTRL, control.value);
 
     while (controlRead(MT_EFUSE_CTRL) & MT_EFUSE_CTRL_KICK);
 
-    return controlRead(MT_EFUSE_DATA(index));
+    Bytes data;
+
+    for (uint8_t i = 0; i < length; i += sizeof(uint32_t))
+    {
+        uint8_t offset = i + (address & 0x0c);
+        uint32_t value = controlRead(MT_EFUSE_DATA_BASE + offset);
+        uint8_t remaining = length - i;
+        uint8_t size = remaining < sizeof(uint32_t)
+            ? remaining
+            : sizeof(uint32_t);
+
+        data.append(value, size);
+    }
+
+    return data;
 }
 
 uint32_t MT76::controlRead(uint16_t address, VendorRequest request)
