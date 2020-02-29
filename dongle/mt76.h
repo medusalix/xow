@@ -713,6 +713,73 @@
 #define MT_TEMP_SENSOR 0x1d000
 #define MT_TEMP_SENSOR_VAL GENMASK(6, 0)
 
+#define MT_EE_CHIP_ID 0x000
+#define MT_EE_VERSION 0x002
+#define MT_EE_MAC_ADDR 0x004
+#define MT_EE_PCI_ID 0x00A
+#define MT_EE_ANTENNA 0x022
+#define MT_EE_CFG1_INIT 0x024
+#define MT_EE_NIC_CONF_0 0x034
+#define MT_EE_NIC_CONF_1 0x036
+#define MT_EE_COUNTRY_REGION_5GHZ 0x038
+#define MT_EE_COUNTRY_REGION_2GHZ 0x039
+#define MT_EE_FREQ_OFFSET 0x03a
+#define MT_EE_NIC_CONF_2 0x042
+#define MT_EE_XTAL_TRIM_1 0x03a
+#define MT_EE_XTAL_TRIM_2 0x09e
+#define MT_EE_LNA_GAIN 0x044
+#define MT_EE_RSSI_OFFSET_2G_0 0x046
+#define MT_EE_RSSI_OFFSET_2G_1 0x048
+#define MT_EE_LNA_GAIN_5GHZ_1 0x049
+#define MT_EE_RSSI_OFFSET_5G_0 0x04a
+#define MT_EE_RSSI_OFFSET_5G_1 0x04c
+#define MT_EE_LNA_GAIN_5GHZ_2 0x04d
+#define MT_EE_TX_POWER_DELTA_BW40 0x050
+#define MT_EE_TX_POWER_DELTA_BW80 0x052
+#define MT_EE_TX_POWER_EXT_PA_5G 0x054
+#define MT_EE_TX_POWER_0_START_2G 0x056
+#define MT_EE_TX_POWER_1_START_2G 0x05c
+#define MT_EE_TX_POWER_0_START_5G 0x062
+#define MT_EE_TSSI_SLOPE_2G 0x06e
+#define MT_EE_TX_POWER_0_GRP3_TX_POWER_DELTA 0x074
+#define MT_EE_TX_POWER_0_GRP4_TSSI_SLOPE 0x076
+#define MT_EE_TX_POWER_1_START_5G 0x080
+#define MT_EE_TX_POWER_CCK 0x0a0
+#define MT_EE_TX_POWER_OFDM_2G_6M 0x0a2
+#define MT_EE_TX_POWER_OFDM_2G_24M 0x0a4
+#define MT_EE_TX_POWER_OFDM_5G_6M 0x0b2
+#define MT_EE_TX_POWER_OFDM_5G_24M 0x0b4
+#define MT_EE_TX_POWER_HT_MCS0 0x0a6
+#define MT_EE_TX_POWER_HT_MCS4 0x0a8
+#define MT_EE_TX_POWER_HT_MCS8 0x0aa
+#define MT_EE_TX_POWER_HT_MCS12 0x0ac
+#define MT_EE_TX_POWER_VHT_MCS0 0x0ba
+#define MT_EE_TX_POWER_VHT_MCS4 0x0bc
+#define MT_EE_TX_POWER_VHT_MCS8 0x0be
+#define MT_EE_2G_TARGET_POWER 0x0d0
+#define MT_EE_TEMP_OFFSET 0x0d1
+#define MT_EE_5G_TARGET_POWER 0x0d2
+#define MT_EE_TSSI_BOUND1 0x0d4
+#define MT_EE_TSSI_BOUND2 0x0d6
+#define MT_EE_TSSI_BOUND3 0x0d8
+#define MT_EE_TSSI_BOUND4 0x0da
+#define MT_EE_FREQ_OFFSET_COMPENSATION 0x0db
+#define MT_EE_TSSI_BOUND5 0x0dc
+#define MT_EE_TX_POWER_BYRATE_BASE 0x0de
+#define MT_EE_TSSI_SLOPE_5G 0x0f0
+#define MT_EE_RF_TEMP_COMP_SLOPE_5G 0x0f2
+#define MT_EE_RF_TEMP_COMP_SLOPE_2G 0x0f4
+#define MT_EE_RF_2G_TSSI_OFF_TXPOWER 0x0f6
+#define MT_EE_RF_2G_RX_HIGH_GAIN 0x0f8
+#define MT_EE_RF_5G_GRP0_1_RX_HIGH_GAIN 0x0fa
+#define MT_EE_RF_5G_GRP2_3_RX_HIGH_GAIN 0x0fc
+#define MT_EE_RF_5G_GRP4_5_RX_HIGH_GAIN 0x0fe
+#define MT_EE_BT_RCAL_RESULT 0x138
+#define MT_EE_BT_VCDL_CALIBRATION 0x13c
+#define MT_EE_BT_PMUCFG 0x13e
+#define MT_EE_USAGE_MAP_START 0x1e0
+#define MT_EE_USAGE_MAP_END 0x1fc
+
 /* The defines below belong to this project */
 
 // Endpoint numbers for reading and writing
@@ -735,10 +802,6 @@
 #define MT_FW_CHUNK_SIZE 0x3800
 #define MT_DMA_COMPLETE 0xc0000000
 #define MT_FW_LOAD_IVB 0x12
-
-// EFUSE offsets
-#define MT_EF_MAC_ADDR 0x00
-#define MT_EF_XTAL_CALIB 0x90
 
 // Register offset in memory
 #define MT_REG_OFFSET 0x410000
@@ -1220,6 +1283,8 @@ private:
 
     /* Initialization routines */
     bool initRegisters();
+    void calibrateCrystal();
+    bool setupChannelCandidates();
     void loadFirmware();
     bool loadFirmwarePart(
         uint32_t offset,
@@ -1238,7 +1303,7 @@ private:
     bool switchChannel(uint8_t channel);
     bool initGain(uint32_t index, const Bytes &values);
     bool setLedMode(uint32_t index);
-    uint32_t efuseRead(uint8_t address, uint8_t index);
+    Bytes efuseRead(uint8_t address, uint8_t index);
 
     /* USB transfer */
     uint32_t controlRead(
