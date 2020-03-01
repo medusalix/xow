@@ -51,19 +51,6 @@ The following Xbox One controllers are currently compatible with the driver:
 If they refuse to pair after multiple attempts you may have to pair them on Windows.
 The cause of the pairing problems is known but no solution has been found yet.
 
-## Planned features
-
-#### Make controller's LEDs and power settings accessible
-
-Ideally, other applications should be able to query/set these things.
-
-#### Automatic channel selection
-
-The Windows driver goes through all channels and reads `MT_CH_IDLE` and `MT_CH_BUSY` to select the best one.
-I have not figured out what these values are and how they are used to determine the least noisy channel.
-
-Any **help/suggestions** regarding the planned features is much appreciated.
-
 ## Releases
 
 - Arch Linux ([master](https://aur.archlinux.org/packages/xow-git), [stable](https://aur.archlinux.org/packages/xow))
