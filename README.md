@@ -47,7 +47,7 @@ The cause of the pairing problems is known but no solution has been found yet.
 ## Releases
 
 - Arch Linux ([master](https://aur.archlinux.org/packages/xow-git), [stable](https://aur.archlinux.org/packages/xow))
-- Debian (coming soon)
+- Debian ([sid](https://packages.debian.org/sid/xow))
 - GamerOS (starting with [version 13](https://github.com/gamer-os/gamer-os/releases/tag/13))
 - Steam Link (starting with [build 747](https://steamcommunity.com/app/353380/discussions/0/1735510154204276395))
 
