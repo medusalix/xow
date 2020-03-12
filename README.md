@@ -62,13 +62,18 @@ Any issues regarding the packaging should be reported to the respective maintain
 
 ## Building
 
+### Prerequisites
+
+- Linux (kernel 4.5 or later)
+- libusb (libusb-1.0-0-dev for Debian)
+
 Clone the repository (necessary for version tagging to work):
 
 ```
 git clone https://github.com/medusalix/xow
 ```
 
-Make sure that `libusb` is installed on your machine. You can build xow using the following command:
+You can build xow using the following command:
 
 ```
 make BUILD=RELEASE
