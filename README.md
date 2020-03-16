@@ -67,14 +67,15 @@ The cause of the pairing problems is known but no solution has been found yet.
 Feel free to create prebuilt releases of xow for any Linux distribution or hardware you like.
 Any issues regarding the packaging should be reported to the respective maintainers.
 
-## Building
+## Installation
 
 ### Prerequisites
 
-- Linux (kernel 4.5 or later)
+- Linux (kernel 4.5 or newer)
 - curl (for proprietary driver download)
 - cabextract (for firmware extraction)
 - libusb (libusb-1.0-0-dev for Debian)
+- systemd (version 232 or newer)
 
 Clone the repository (necessary for version tagging to work):
 
@@ -82,7 +83,7 @@ Clone the repository (necessary for version tagging to work):
 git clone https://github.com/medusalix/xow
 ```
 
-You can build xow using the following command:
+Build xow using the following command:
 
 ```
 make BUILD=RELEASE
@@ -90,7 +91,7 @@ make BUILD=RELEASE
 
 **NOTE:** Please use `BUILD=DEBUG` when asked for your debug logs.
 
-**Option 1 (recommended):** Install xow as a `systemd` service (starts xow at boot time):
+Install xow as a `systemd` service (starts xow at boot time):
 
 ```
 sudo make install
@@ -100,13 +101,15 @@ sudo systemctl start xow
 
 **NOTE:** A reboot might be required for xow to work correctly.
 
-**Option 2:** Run xow manually:
+### Updating
+
+Make sure to completely uninstall xow before updating:
 
 ```
-sudo ./xow
+sudo systemctl stop xow
+sudo systemctl disable xow
+sudo make uninstall
 ```
-
-Running xow without `make install` is **not recommended** (except for debugging) as it requires root privileges to operate.
 
 ## Troubleshooting
 
