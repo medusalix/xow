@@ -58,14 +58,6 @@ Controller::Controller(SendPacket sendPacket) : sendPacket(sendPacket)
     readEvents();
 }
 
-Controller::~Controller()
-{
-    if (!setPowerMode(POWER_OFF))
-    {
-        Log::error("Failed to power off controller");
-    }
-}
-
 void Controller::feedbackReceived(ff_effect effect, uint16_t gain)
 {
     if (effect.type != FF_RUMBLE)

@@ -24,8 +24,6 @@
 #include <cstdint>
 #include <array>
 #include <memory>
-#include <string>
-#include <stdexcept>
 
 // Microsoft's vendor ID
 #define DONGLE_VID 0x045e
@@ -34,8 +32,6 @@
 #define DONGLE_PID_OLD 0x02e6
 #define DONGLE_PID_NEW 0x02fe
 
-class Bytes;
-
 /*
  * Handles received 802.11 packets
  * Delegates GIP (Game Input Protocol) packets to controllers
@@ -43,8 +39,8 @@ class Bytes;
 class Dongle : public MT76
 {
 private:
-    void added() override;
-    void terminate() override;
+    bool afterOpen() override;
+    bool beforeClose() override;
 
     void clientConnected(uint8_t wcid, Bytes address) override;
     void clientDisconnected(uint8_t wcid) override;
@@ -57,10 +53,4 @@ private:
     );
 
     std::array<std::unique_ptr<Controller>, MT_WCID_COUNT> controllers;
-};
-
-class DongleException : public std::runtime_error
-{
-public:
-    DongleException(std::string message);
 };

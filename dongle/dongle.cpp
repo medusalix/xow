@@ -21,25 +21,41 @@
 
 #include <functional>
 
-void Dongle::added()
+bool Dongle::afterOpen()
 {
     Log::info("Dongle plugged in");
 
-    MT76::added();
-
-    Log::info("Dongle initialized");
-}
-
-void Dongle::terminate()
-{
-    for (std::unique_ptr<Controller> &controller : controllers)
+    if (!MT76::afterOpen())
     {
-        controller.reset();
+        return false;
     }
 
-    MT76::terminate();
+    Log::info("Dongle initialized");
 
-    Log::info("Dongle disconnected");
+    return true;
+}
+
+bool Dongle::beforeClose()
+{
+    // Prevent controller connect/disconnect race conditions
+    std::lock_guard<std::mutex> lock(handlePacketMutex);
+
+    Log::info("Dongle power-off");
+
+    for (std::unique_ptr<Controller> &controller : controllers)
+    {
+        if (controller && !controller->setPowerMode(POWER_OFF))
+        {
+            Log::error("Failed to power off controller");
+        }
+    }
+
+    if (!MT76::beforeClose())
+    {
+        return false;
+    }
+
+    return true;
 }
 
 void Dongle::clientConnected(uint8_t wcid, Bytes address)
@@ -147,6 +163,3 @@ bool Dongle::sendControllerPacket(
 
     return true;
 }
-
-DongleException::DongleException(std::string message)
-    : std::runtime_error(message) {}

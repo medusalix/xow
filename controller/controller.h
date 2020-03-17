@@ -182,9 +182,9 @@ private:
 
 public:
     Controller(SendPacket sendPacket);
-    virtual ~Controller();
 
     void packetReceived(const Bytes &packet);
+    bool setPowerMode(PowerMode mode);
 
 private:
     void feedbackReceived(
@@ -197,7 +197,6 @@ private:
 
     bool acknowledgePacket(const ControllerFrame *packet = nullptr);
     bool requestSerialNumber();
-    bool setPowerMode(PowerMode mode);
     bool setLedMode(LedModeData data);
     bool performRumble(RumbleData data);
 
