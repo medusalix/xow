@@ -18,51 +18,44 @@
 
 #include "mt76.h"
 #include "../utils/log.h"
-#include "../utils/bytes.h"
 
 #include <thread>
-#include <algorithm>
 
 extern uint8_t _binary_firmware_bin_start[];
 extern uint8_t _binary_firmware_bin_end[];
 
-void MT76::added()
+bool MT76::afterOpen()
 {
-    macAddress.clear();
-    connectedWcids = 0;
-
-    loadFirmware();
-    initChip();
-
-    bulkReadAsync(MT_EP_READ, buffer);
-    bulkReadAsync(MT_EP_READ_PACKET, packetBuffer);
-
-    std::thread([this]()
+    if (!loadFirmware())
     {
-        Bytes packet;
-        bool read = false;
+        Log::error("Failed to load firmware");
 
-        // Read while device is connected
-        do
-        {
-            read = nextBulkPacket(packet);
+        return false;
+    }
 
-            handleBulkPacket(packet);
-        } while (read);
-    }).detach();
+    if (!initChip())
+    {
+        Log::error("Failed to initialize chip");
+
+        return false;
+    }
+
+    std::thread(&MT76::readBulkPackets, this, MT_EP_READ).detach();
+    std::thread(&MT76::readBulkPackets, this, MT_EP_READ_PACKET).detach();
+
+    return true;
 }
 
-void MT76::terminate()
+bool MT76::beforeClose()
 {
     if (!setLedMode(MT_LED_OFF))
     {
         Log::error("Failed to turn off LED");
+
+        return false;
     }
 
-    if (!powerMode(RADIO_OFF))
-    {
-        Log::error("Failed to turn off radio");
-    }
+    return true;
 }
 
 void MT76::handleWlanPacket(const Bytes &packet)
@@ -215,6 +208,8 @@ void MT76::handleBulkPacket(const Bytes &packet)
 
         return;
     }
+
+    std::lock_guard<std::mutex> lock(handlePacketMutex);
 
     const RxInfoGeneric *rxInfo = packet.toStruct<RxInfoGeneric>();
 
@@ -645,7 +640,7 @@ bool MT76::setupChannelCandidates()
     return true;
 }
 
-void MT76::loadFirmware()
+bool MT76::loadFirmware()
 {
     if (controlRead(MT_FCE_DMA_ADDR, MT_VEND_READ_CFG))
     {
@@ -691,13 +686,17 @@ void MT76::loadFirmware()
     // Upload instruction local memory (ILM)
     if (!loadFirmwarePart(MT_MCU_ILM_OFFSET, ilmStart, dlmStart))
     {
-        throw MT76Exception("Failed to write ILM");
+        Log::error("Failed to write ILM");
+
+        return false;
     }
 
     // Upload data local memory (DLM)
     if (!loadFirmwarePart(MT_MCU_DLM_OFFSET, dlmStart, dlmEnd))
     {
-        throw MT76Exception("Failed to write DLM");
+        Log::error("Failed to write DLM");
+
+        return false;
     }
 
     // Load initial vector block (IVB)
@@ -708,6 +707,8 @@ void MT76::loadFirmware()
     while (controlRead(MT_FCE_DMA_ADDR, MT_VEND_READ_CFG) != 0x01);
 
     Log::debug("Firmware loaded");
+
+    return true;
 }
 
 bool MT76::loadFirmwarePart(
@@ -754,7 +755,7 @@ bool MT76::loadFirmwarePart(
     return true;
 }
 
-void MT76::initChip()
+bool MT76::initChip()
 {
     // Select RX ring buffer 1
     // Turn radio on
@@ -764,12 +765,16 @@ void MT76::initChip()
         !powerMode(RADIO_ON) ||
         !loadCr(MT_RF_BBP_CR)
     ) {
-        throw MT76Exception("Failed to init radio");
+        Log::error("Failed to init radio");
+
+        return false;
     }
 
     if (!initRegisters())
     {
-        throw MT76Exception("Failed to init registers");
+        Log::error("Failed to init registers");
+
+        return false;
     }
 
     controlWrite(MT_MAC_SYS_CTRL, 0);
@@ -779,7 +784,9 @@ void MT76::initChip()
         !calibrate(MCU_CAL_RXDCOC, 1) ||
         !calibrate(MCU_CAL_RC, 0)
     ) {
-        throw MT76Exception("Failed to calibrate chip");
+        Log::error("Failed to calibrate chip");
+
+        return false;
     }
 
     controlWrite(
@@ -789,23 +796,33 @@ void MT76::initChip()
 
     if (!switchChannel(MT_CHANNEL))
     {
-        throw MT76Exception("Failed to set channel");
+        Log::error("Failed to set channel");
+
+        return false;
     }
 
     if (!initGain(0, macAddress))
     {
-        throw MT76Exception("Failed to init gain");
+        Log::error("Failed to init gain");
+
+        return false;
     }
 
     if (!writeBeacon())
     {
-        throw MT76Exception("Failed to write beacon");
+        Log::error("Failed to write beacon");
+
+        return false;
     }
 
     if (!setupChannelCandidates())
     {
-        throw MT76Exception("Failed to setup channel candidates");
+        Log::error("Failed to setup channel candidates");
+
+        return false;
     }
+
+    return true;
 }
 
 bool MT76::writeBeacon(bool pairing)
@@ -886,6 +903,21 @@ bool MT76::writeBeacon(bool pairing)
     }
 
     return true;
+}
+
+void MT76::readBulkPackets(uint8_t endpoint)
+{
+    FixedBytes<USB_BUFFER_SIZE> buffer;
+    int transferred = 0;
+
+    do
+    {
+        transferred = bulkRead(endpoint, buffer);
+
+        Bytes packet = buffer.toBytes(transferred);
+
+        handleBulkPacket(packet);
+    } while (transferred);
 }
 
 bool MT76::selectFunction(McuFunction function, uint32_t value)
@@ -1103,7 +1135,7 @@ uint32_t MT76::controlRead(uint16_t address, VendorRequest request)
     packet.data = reinterpret_cast<uint8_t*>(&response);
     packet.length = sizeof(response);
 
-    controlTransfer(packet);
+    controlTransfer(packet, false);
 
     return response;
 }
@@ -1115,7 +1147,6 @@ void MT76::controlWrite(
 ) {
     ControlPacket packet = {};
 
-    packet.out = true;
     packet.request = request;
 
     if (request == MT_VEND_DEV_MODE)
@@ -1130,8 +1161,5 @@ void MT76::controlWrite(
         packet.length = sizeof(value);
     }
 
-    controlTransfer(packet);
+    controlTransfer(packet, true);
 }
-
-MT76Exception::MT76Exception(std::string message)
-    : std::runtime_error(message) {}

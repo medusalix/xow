@@ -23,7 +23,7 @@
 #include <cstdint>
 #include <array>
 #include <string>
-#include <stdexcept>
+#include <mutex>
 
 #define BITS_PER_LONG (sizeof(long) * 8)
 #define BIT(nr) (1UL << (nr))
@@ -1246,8 +1246,6 @@ union DmaConfig
     uint32_t value;
 };
 
-class Bytes;
-
 /*
  * Interfaces with the MT76 chip
  * Handles basic 802.11 client operations
@@ -1255,8 +1253,8 @@ class Bytes;
 class MT76 : public UsbDevice
 {
 protected:
-    virtual void added() override;
-    virtual void terminate() override;
+    virtual bool afterOpen() override;
+    virtual bool beforeClose() override;
 
     /* WLAN client callbacks */
     virtual void clientConnected(uint8_t wcid, Bytes address) = 0;
@@ -1270,6 +1268,7 @@ protected:
     bool sendCommand(McuCommand command, const Bytes &data);
 
     Bytes macAddress;
+    std::mutex handlePacketMutex;
 
 private:
     /* Packet handling and transmission */
@@ -1285,13 +1284,14 @@ private:
     bool initRegisters();
     void calibrateCrystal();
     bool setupChannelCandidates();
-    void loadFirmware();
+    bool loadFirmware();
     bool loadFirmwarePart(
         uint32_t offset,
         Bytes::Iterator start,
         Bytes::Iterator end
     );
-    void initChip();
+    bool initChip();
+    void readBulkPackets(uint8_t endpoint);
 
     /* MCU functions/commands */
     bool writeBeacon(bool pairing = false);
@@ -1316,12 +1316,5 @@ private:
         VendorRequest request = MT_VEND_MULTI_WRITE
     );
 
-    FixedBytes<USB_BUFFER_SIZE> buffer, packetBuffer;
     uint16_t connectedWcids = 0;
-};
-
-class MT76Exception : public std::runtime_error
-{
-public:
-    MT76Exception(std::string message);
 };

@@ -22,13 +22,15 @@
 
 #include <thread>
 #include <cstring>
+#include <atomic>
 #include <csignal>
 #include <sys/signalfd.h>
 #include <unistd.h>
-#include <atomic>
 
-// Timeout in milliseconds
-#define USB_WRITE_TIMEOUT 1000
+// Timeouts in milliseconds
+// No timeout for reading
+#define USB_TIMEOUT_READ 0
+#define USB_TIMEOUT_WRITE 1000
 
 void UsbDevice::open(libusb_device *device)
 {
@@ -38,12 +40,12 @@ void UsbDevice::open(libusb_device *device)
         return;
     }
 
+    Log::debug("Opening device...");
+
     int error = libusb_open(device, &handle);
 
     if (error)
     {
-        libusb_exit(nullptr);
-
         throw UsbException("Error opening device: ", error);
     }
 
@@ -51,9 +53,6 @@ void UsbDevice::open(libusb_device *device)
 
     if (error)
     {
-        libusb_close(handle);
-        libusb_exit(nullptr);
-
         throw UsbException("Error resetting device: ", error);
     }
 
@@ -61,9 +60,6 @@ void UsbDevice::open(libusb_device *device)
 
     if (error)
     {
-        libusb_close(handle);
-        libusb_exit(nullptr);
-
         throw UsbException("Error setting configuration: ", error);
     }
 
@@ -71,57 +67,41 @@ void UsbDevice::open(libusb_device *device)
 
     if (error)
     {
-        libusb_close(handle);
-        libusb_exit(nullptr);
-
         throw UsbException("Error claiming interface: ", error);
     }
 
-    std::thread(&UsbDevice::added, this).detach();
+    if (!afterOpen())
+    {
+        throw UsbException("Error opening device");
+    }
 }
 
 void UsbDevice::close()
 {
-    // Device is already closed
+    // Device is closed
     if (!handle)
     {
         return;
     }
 
-    terminate();
+    Log::debug("Closing device...");
 
-    // Prevent deadlocks from occuring
-    std::lock(controlMutex, readMutex, writeMutex);
-
-    // Avoid race conditions by acquiring all mutexes
-    std::lock_guard<std::mutex> controlLock(controlMutex, std::adopt_lock);
-    std::lock_guard<std::mutex> readLock(readMutex, std::adopt_lock);
-    std::lock_guard<std::mutex> writeLock(writeMutex, std::adopt_lock);
-
-    // Clear read queue
-    readCondition.notify_one();
-    readQueue = std::queue<Bytes>();
+    if (!beforeClose())
+    {
+        throw UsbException("Error closing device");
+    }
 
     libusb_close(handle);
-    handle = nullptr;
 }
 
-void UsbDevice::controlTransfer(ControlPacket packet)
+void UsbDevice::controlTransfer(ControlPacket packet, bool write)
 {
-    std::lock_guard<std::mutex> lock(controlMutex);
-
-    // Device was disconnected
-    if (!handle)
-    {
-        return;
-    }
-
     uint8_t type = LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE;
 
-    type |= packet.out ? LIBUSB_ENDPOINT_OUT : LIBUSB_ENDPOINT_IN;
+    type |= write ? LIBUSB_ENDPOINT_OUT : LIBUSB_ENDPOINT_IN;
 
     // Number of bytes or error code
-    int count = libusb_control_transfer(
+    int transferred = libusb_control_transfer(
         handle,
         type,
         packet.request,
@@ -129,83 +109,48 @@ void UsbDevice::controlTransfer(ControlPacket packet)
         packet.index,
         packet.data,
         packet.length,
-        USB_WRITE_TIMEOUT
+        USB_TIMEOUT_WRITE
     );
 
-    if (count != packet.length)
+    if (transferred != packet.length)
     {
-        libusb_close(handle);
-        libusb_exit(nullptr);
+        Log::error(
+            "Error in control transfer: %s",
+            libusb_error_name(transferred)
+        );
 
-        throw UsbException("Error in control transfer: ", count);
+        terminate();
     }
 }
 
-void UsbDevice::bulkReadAsync(
+int UsbDevice::bulkRead(
     uint8_t endpoint,
     FixedBytes<USB_BUFFER_SIZE> &buffer
 ) {
-    libusb_transfer *transfer = libusb_alloc_transfer(0);
-
-    if (!transfer)
-    {
-        libusb_close(handle);
-        libusb_exit(nullptr);
-
-        throw UsbException(
-            "Error allocating bulk read: ",
-            LIBUSB_ERROR_NO_MEM
-        );
-    }
-
-    libusb_fill_bulk_transfer(
-        transfer,
+    int transferred = 0;
+    int error = libusb_bulk_transfer(
         handle,
         endpoint | LIBUSB_ENDPOINT_IN,
         buffer.raw(),
         buffer.size(),
-        readCallback,
-        this,
-        0
+        &transferred,
+        USB_TIMEOUT_READ
     );
-
-    int error = libusb_submit_transfer(transfer);
 
     if (error)
     {
-        libusb_free_transfer(transfer);
-        libusb_close(handle);
-        libusb_exit(nullptr);
+        Log::error("Error in bulk read: %s", libusb_error_name(error));
 
-        throw UsbException("Error submitting bulk read", error);
-    }
-}
+        terminate();
 
-bool UsbDevice::nextBulkPacket(Bytes &packet)
-{
-    std::unique_lock<std::mutex> lock(readMutex);
-
-    while (readQueue.empty())
-    {
-        // Device was disconnected
-        if (!handle)
-        {
-            return false;
-        }
-
-        readCondition.wait(lock);
+        return 0;
     }
 
-    packet = readQueue.front();
-    readQueue.pop();
-
-    return true;
+    return transferred;
 }
 
 bool UsbDevice::bulkWrite(uint8_t endpoint, Bytes &data)
 {
-    std::lock_guard<std::mutex> lock(writeMutex);
-
     // Device was disconnected
     if (!handle)
     {
@@ -218,53 +163,19 @@ bool UsbDevice::bulkWrite(uint8_t endpoint, Bytes &data)
         data.raw(),
         data.size(),
         nullptr,
-        USB_WRITE_TIMEOUT
+        USB_TIMEOUT_WRITE
     );
 
     if (error)
     {
         Log::error("Error in bulk write: %s", libusb_error_name(error));
 
+        terminate();
+
         return false;
     }
 
     return true;
-}
-
-void UsbDevice::readCallback(libusb_transfer *transfer)
-{
-    UsbDevice *device = static_cast<UsbDevice*>(transfer->user_data);
-
-    if (transfer->status != LIBUSB_TRANSFER_COMPLETED)
-    {
-        Log::error("Error in bulk read: %d", transfer->status);
-
-        libusb_free_transfer(transfer);
-
-        return;
-    }
-
-    const Bytes data(
-        transfer->buffer,
-        transfer->buffer + transfer->actual_length
-    );
-    std::lock_guard<std::mutex> lock(device->readMutex);
-
-    device->readQueue.push(data);
-    device->readCondition.notify_one();
-
-    // Resubmit transfer
-    int error = libusb_submit_transfer(transfer);
-
-    if (error)
-    {
-        libusb_free_transfer(transfer);
-
-        Log::error(
-            "Error resubmitting bulk read: %s",
-            libusb_error_name(error)
-        );
-    }
 }
 
 UsbDeviceManager::UsbDeviceManager()
@@ -306,7 +217,7 @@ void UsbDeviceManager::registerDevice(
         int error = libusb_hotplug_register_callback(
             nullptr,
             static_cast<libusb_hotplug_event>(
-                LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED | LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT
+                LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED
             ),
             LIBUSB_HOTPLUG_ENUMERATE,
             id.vendorId,
@@ -319,8 +230,6 @@ void UsbDeviceManager::registerDevice(
 
         if (error)
         {
-            libusb_exit(nullptr);
-
             throw UsbException("Error registering hotplug: ", error);
         }
     }
@@ -328,10 +237,18 @@ void UsbDeviceManager::registerDevice(
 
 void UsbDeviceManager::handleEvents(UsbDevice &device)
 {
-    std::atomic<bool> terminate(false);
+    std::atomic<bool> run(true);
+
+    // Device termination callback (in case of errors)
+    device.terminate = [this, &run]
+    {
+        Log::debug("Device error, terminating...");
+
+        run = false;
+    };
 
     // Dedicated thread for signal handling
-    std::thread([this, &device, &terminate]
+    std::thread([this, &device, &run]
     {
         signalfd_siginfo info = {};
 
@@ -340,26 +257,26 @@ void UsbDeviceManager::handleEvents(UsbDevice &device)
             throw UsbException("Error reading signal: ", strerror(errno));
         }
 
-        Log::debug("Terminating device...");
+        Log::debug("Stop signal received");
 
         device.close();
-        terminate = true;
+        run = false;
 
         // Interrupt the event handling
         libusb_hotplug_deregister_callback(nullptr, hotplugHandle);
     }).detach();
 
-    while (!terminate)
+    while (run)
     {
         int error = libusb_handle_events_completed(nullptr, nullptr);
 
         if (error)
         {
-            libusb_exit(nullptr);
-
             throw UsbException("Error handling events: ", error);
         }
     }
+
+    libusb_exit(nullptr);
 }
 
 int UsbDeviceManager::hotplugCallback(
@@ -370,15 +287,8 @@ int UsbDeviceManager::hotplugCallback(
 ) {
     UsbDevice *usbDevice = static_cast<UsbDevice*>(userData);
 
-    if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED)
-    {
-        usbDevice->open(device);
-    }
-
-    else if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT)
-    {
-        usbDevice->close();
-    }
+    // Transfers inside the callback are not allowed
+    std::thread(&UsbDevice::open, usbDevice, device).detach();
 
     return 0;
 }

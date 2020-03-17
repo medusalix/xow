@@ -21,9 +21,7 @@
 #include "../utils/bytes.h"
 
 #include <cstdint>
-#include <mutex>
-#include <queue>
-#include <condition_variable>
+#include <functional>
 #include <string>
 #include <stdexcept>
 
@@ -31,22 +29,24 @@
 
 #define USB_BUFFER_SIZE 512
 
-class Bytes;
-
 /*
  * Base class for interfacing with USB devices
- * Provides sync/async control/bulk transfers
+ * Provides control/bulk transfers
  */
 class UsbDevice
 {
+private:
+    using Terminate = std::function<void()>;
+
 public:
     void open(libusb_device *device);
     void close();
 
+    Terminate terminate;
+
 protected:
     struct ControlPacket
     {
-        bool out;
         uint8_t request;
         uint16_t value;
         uint16_t index;
@@ -54,25 +54,18 @@ protected:
         uint16_t length;
     };
 
-    virtual void added() = 0;
-    virtual void terminate() = 0;
+    virtual bool afterOpen() = 0;
+    virtual bool beforeClose() = 0;
 
-    void controlTransfer(ControlPacket packet);
-    void bulkReadAsync(
+    void controlTransfer(ControlPacket packet, bool write);
+    int bulkRead(
         uint8_t endpoint,
         FixedBytes<USB_BUFFER_SIZE> &buffer
     );
-    bool nextBulkPacket(Bytes &packet);
     bool bulkWrite(uint8_t endpoint, Bytes &data);
 
 private:
-    static void readCallback(libusb_transfer *transfer);
-
     libusb_device_handle *handle = nullptr;
-
-    std::mutex readMutex, writeMutex, controlMutex;
-    std::queue<Bytes> readQueue;
-    std::condition_variable readCondition;
 };
 
 /*
@@ -111,5 +104,5 @@ class UsbException : public std::runtime_error
 {
 public:
     UsbException(std::string message, int error);
-    UsbException(std::string message, std::string error);
+    UsbException(std::string message, std::string error = "");
 };

@@ -21,7 +21,6 @@
 #include <cstdint>
 #include <string>
 #include <stdexcept>
-
 #include <linux/uinput.h>
 
 /*
