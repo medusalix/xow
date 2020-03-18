@@ -36,7 +36,7 @@
  * Handles received 802.11 packets
  * Delegates GIP (Game Input Protocol) packets to controllers
  */
-class Dongle : public MT76
+class Dongle : public Mt76
 {
 private:
     bool afterOpen() override;
