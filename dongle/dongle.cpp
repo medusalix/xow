@@ -25,7 +25,7 @@ bool Dongle::afterOpen()
 {
     Log::info("Dongle plugged in");
 
-    if (!MT76::afterOpen())
+    if (!Mt76::afterOpen())
     {
         return false;
     }
@@ -50,7 +50,7 @@ bool Dongle::beforeClose()
         }
     }
 
-    if (!MT76::beforeClose())
+    if (!Mt76::beforeClose())
     {
         return false;
     }

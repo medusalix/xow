@@ -1250,7 +1250,7 @@ union DmaConfig
  * Interfaces with the MT76 chip
  * Handles basic 802.11 client operations
  */
-class MT76 : public UsbDevice
+class Mt76 : public UsbDevice
 {
 protected:
     virtual bool afterOpen() override;
