@@ -34,16 +34,12 @@ The following Xbox One controllers are currently compatible with the driver:
 
 | Model number | Year | Additional information    | Status       |
 |--------------|------|---------------------------|--------------|
-| 1537         | 2013 | Original controller       | **Working*** |
+| 1537         | 2013 | Original controller       | **Working**  |
 | 1697         | 2015 | Audio jack                | **Working**  |
 | 1698         | 2015 | Elite controller          | **Working**  |
 | 1708         | 2016 | Bluetooth connectivity    | **Working**  |
 | 1797         | 2019 | Elite controller series 2 | **Working**  |
 | 1914         | 2020 | Share button and USB-C    | **Untested** |
-
-*Some controllers (especially model 1537) might not pair on the first try.
-If they refuse to pair after multiple attempts you may have to pair them on Windows.
-The cause of the pairing problems is known but no solution has been found yet.
 
 ## Releases
 
