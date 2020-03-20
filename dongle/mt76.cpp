@@ -60,6 +60,7 @@ bool Mt76::beforeClose()
 
 void Mt76::handleWlanPacket(const Bytes &packet)
 {
+    const RxWi *rxWi = packet.toStruct<RxWi>();
     const WlanFrame *wlanFrame = packet.toStruct<WlanFrame>(sizeof(RxWi));
 
     const Bytes source(
@@ -102,6 +103,26 @@ void Mt76::handleWlanPacket(const Bytes &packet)
         }
 
         clientConnected(wcid, source);
+    }
+
+    // Only kept for compatibility with 1537 controllers
+    // They associate, disassociate and associate again during pairing
+    // Disassociations happen without triggering EVT_CLIENT_LOST
+    else if (subtype == MT_WLAN_DISASSOC)
+    {
+        Log::debug(
+            "Client disassociating: %s",
+            Log::formatBytes(source).c_str()
+        );
+
+        if (!removeClient(rxWi->wcid))
+        {
+            Log::error("Failed to remove client");
+
+            return;
+        }
+
+        clientDisconnected(rxWi->wcid);
     }
 
     // Reserved frames are used for different purposes
