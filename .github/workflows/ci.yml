@@ -1,0 +1,14 @@
+name: Continuous Integration
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install libusb
+      run: sudo apt install libusb-1.0-0-dev
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Make (debug)
+      run: make clean && make BUILD=DEBUG
+    - name: Make (release)
+      run: make clean && make BUILD=RELEASE

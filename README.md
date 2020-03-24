@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-    <a href="https://travis-ci.com/medusalix/xow">
-        <img src="https://img.shields.io/travis/com/medusalix/xow" alt="Build Badge">
+    <a href="https://github.com/medusalix/xow/actions">
+        <img src="https://img.shields.io/github/workflow/status/medusalix/xow/Continuous%20Integration" alt="Build Badge">
     </a>
     <a href="https://github.com/medusalix/xow/releases/latest">
         <img src="https://img.shields.io/github/v/release/medusalix/xow" alt="Release Badge">
