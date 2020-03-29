@@ -988,7 +988,7 @@ struct AssociationResponseFrame
     uint16_t capabilityInfo;
     uint16_t statusCode;
     uint16_t associationId;
-    uint16_t ssid;
+    uint64_t unknown;
 } __attribute__((packed));
 
 struct BeaconFrame
