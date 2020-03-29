@@ -302,10 +302,12 @@ uint8_t Mt76::associateClient(Bytes address)
     macAddress.copy(wlanFrame.source);
     macAddress.copy(wlanFrame.bssId);
 
-    // Status code zero (success)
-    // Association ID can remain zero
-    // Wildcard SSID
     AssociationResponseFrame associationFrame = {};
+
+    // Original status code
+    // Original association ID
+    associationFrame.statusCode = 0x0110;
+    associationFrame.associationId = 0x0f00;
 
     Bytes out;
 
@@ -447,7 +449,7 @@ bool Mt76::sendWlanPacket(const Bytes &data)
     // Values must be 32-bit aligned
     // 32 zero-bits mark the end
     uint32_t length = data.size();
-    uint8_t padding = sizeof(uint32_t) - length % sizeof(uint32_t);
+    uint8_t padding = Bytes::padding<uint32_t>(length);
 
     TxInfoPacket info = {};
 
@@ -850,10 +852,9 @@ bool Mt76::writeBeacon(bool pairing)
 {
     const Bytes broadcastAddress = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
-    // Required for clients to connect reliably
-    // Probably contains the selected channel pair
-    // 00 -> a5 and 30 -> 99
-    const Bytes beaconData = {
+    // Contains an information element (ID: 0xdd, Length: 0x10)
+    // Probably includes the selected channel pair
+    const Bytes data = {
         0xdd, 0x10, 0x00, 0x50,
         0xf2, 0x11, 0x01, 0x10,
         pairing, 0xa5, 0x30, 0x99,
@@ -869,7 +870,7 @@ bool Mt76::writeBeacon(bool pairing)
     txWi.phyType = MT_PHY_TYPE_OFDM;
     txWi.timestamp = 1;
     txWi.nseq = 1;
-    txWi.mpduByteCount = sizeof(WlanFrame) + sizeof(BeaconFrame) + beaconData.size();
+    txWi.mpduByteCount = sizeof(WlanFrame) + sizeof(BeaconFrame) + data.size();
 
     WlanFrame wlanFrame = {};
 
@@ -893,7 +894,7 @@ bool Mt76::writeBeacon(bool pairing)
     out.append(txWi);
     out.append(wlanFrame);
     out.append(beaconFrame);
-    out.append(beaconData);
+    out.append(data);
 
     BeaconTimeConfig config = {};
 
@@ -1087,7 +1088,7 @@ bool Mt76::sendCommand(McuCommand command, const Bytes &data)
     // Values must be 32-bit aligned
     // 32 zero-bits mark the end
     uint32_t length = data.size();
-    uint8_t padding = sizeof(uint32_t) - length % sizeof(uint32_t);
+    uint8_t padding = Bytes::padding<uint32_t>(length);
 
     // We ignore responses, sequence number is always zero
     TxInfoCommand info = {};

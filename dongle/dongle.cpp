@@ -140,8 +140,8 @@ bool Dongle::sendControllerPacket(
     // Frames and data must be 32-bit aligned
     uint32_t length = sizeof(txWi) + sizeof(wlanFrame) + sizeof(qosFrame);
     uint32_t wcidData = __builtin_bswap32(wcid - 1);
-    uint8_t framePadding = sizeof(uint32_t) - length % sizeof(uint32_t);
-    uint8_t dataPadding = sizeof(uint32_t) - packet.size() % sizeof(uint32_t);
+    uint8_t framePadding = Bytes::padding<uint32_t>(length);
+    uint8_t dataPadding = Bytes::padding<uint32_t>(packet.size());
 
     Bytes out;
 

@@ -31,6 +31,12 @@ class Bytes
 public:
     using Iterator = std::vector<uint8_t>::const_iterator;
 
+    template<typename T>
+    inline static size_t padding(size_t count)
+    {
+        return (sizeof(T) - count % sizeof(T)) % sizeof(T);
+    }
+
     inline Bytes() {}
 
     inline Bytes(std::initializer_list<uint8_t> elements)
