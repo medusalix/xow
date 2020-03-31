@@ -5,7 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Install libusb
-      run: sudo apt install libusb-1.0-0-dev
+      run: sudo apt update && sudo apt install libusb-1.0-0-dev
     - name: Checkout
       uses: actions/checkout@v2
     - name: Make (debug)
