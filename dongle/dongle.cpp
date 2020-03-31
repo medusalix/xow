@@ -44,7 +44,7 @@ bool Dongle::beforeClose()
 
     for (std::unique_ptr<Controller> &controller : controllers)
     {
-        if (controller && !controller->setPowerMode(POWER_OFF))
+        if (controller && !controller->powerOff())
         {
             Log::error("Failed to power off controller");
         }
@@ -68,19 +68,9 @@ void Dongle::clientConnected(uint8_t wcid, Bytes address)
         std::placeholders::_1
     );
 
-    try
-    {
-        controllers[wcid - 1].reset(new Controller(sendPacket));
+    controllers[wcid - 1].reset(new Controller(sendPacket));
 
-        Log::info("Controller '%d' connected", wcid);
-    }
-
-    catch (const ControllerException &exception)
-    {
-        removeClient(wcid);
-
-        Log::error("Error initializing controller: %s", exception.what());
-    }
+    Log::info("Controller '%d' connected", wcid);
 }
 
 void Dongle::clientDisconnected(uint8_t wcid)
@@ -106,7 +96,10 @@ void Dongle::packetReceived(uint8_t wcid, const Bytes &packet)
         return;
     }
 
-    controllers[wcid - 1]->packetReceived(packet);
+    if (!controllers[wcid - 1]->handlePacket(packet))
+    {
+        Log::error("Error handling packet for controller '%d'", wcid);
+    }
 }
 
 bool Dongle::sendControllerPacket(
