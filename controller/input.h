@@ -19,41 +19,40 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <stdexcept>
 #include <linux/uinput.h>
 
 /*
- * Base class for user mode input devices
- * Supports force feedback
+ * User mode input device for gamepads
+ * Passes force feedback events to callback
  */
 class InputDevice
 {
-protected:
+public:
+    using FeedbackReceived = std::function<void(
+        ff_effect effect,
+        uint16_t gain
+    )>;
+
     struct AxisConfig
     {
         int32_t minimum, maximum;
         int32_t fuzz, flat;
     };
 
-    InputDevice();
+    InputDevice(FeedbackReceived feedbackReceived);
     virtual ~InputDevice();
-
-    virtual void feedbackReceived(
-        ff_effect effect,
-        uint16_t gain
-    ) = 0;
 
     void addKey(uint16_t code);
     void addAxis(uint16_t code, AxisConfig config);
     void addFeedback(uint16_t code);
-
     void create(
         uint16_t vendorId,
         uint16_t productId,
         std::string name
     );
-    void readEvents();
 
     inline void setKey(uint16_t key, bool pressed)
     {
@@ -71,6 +70,7 @@ protected:
     }
 
 private:
+    void readEvents();
     void emitCode(
         uint16_t type,
         uint16_t code,
@@ -82,8 +82,10 @@ private:
     void handleEvent(input_event event);
 
     int file, stopPipe;
+
     ff_effect effect = {};
     uint16_t effectGain = 0xffff;
+    FeedbackReceived feedbackReceived;
 };
 
 class InputException : public std::runtime_error
