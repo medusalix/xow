@@ -39,6 +39,7 @@ private:
     void serialNumberReceived(const SerialData *serial) override;
     void inputReceived(const InputData *input) override;
 
+    void setupInput(uint16_t vendorId, uint16_t productId);
     void feedbackReceived(
         ff_effect effect,
         uint16_t gain

@@ -91,9 +91,9 @@ protected:
 
     struct VersionInfo
     {
-        uint16_t build;
         uint16_t major;
         uint16_t minor;
+        uint16_t build;
         uint16_t revision;
     } __attribute__((packed));
 

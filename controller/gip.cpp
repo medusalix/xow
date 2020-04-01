@@ -64,34 +64,6 @@ bool GipDevice::handlePacket(const Bytes &packet)
         frame->command == CMD_ANNOUNCE &&
         frame->length == sizeof(AnnounceData)
     ) {
-        LedModeData ledMode = {};
-
-        // Dim the LED a little bit, like the original driver
-        // Brightness ranges from 0x00 to 0x20
-        ledMode.mode = LED_ON;
-        ledMode.brightness = 0x14;
-
-        if (!setPowerMode(POWER_ON))
-        {
-            Log::error("Failed to set initial power mode");
-
-            return false;
-        }
-
-        if (!setLedMode(ledMode))
-        {
-            Log::error("Failed to set initial LED mode");
-
-            return false;
-        }
-
-        if (!requestSerialNumber())
-        {
-            Log::error("Failed to request serial number");
-
-            return false;
-        }
-
         deviceAnnounced(
             packet.toStruct<AnnounceData>(sizeof(Frame))
         );
