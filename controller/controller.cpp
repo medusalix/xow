@@ -40,66 +40,48 @@ void Controller::deviceAnnounced(const AnnounceData *announce)
     Log::info("Product ID: %04x", announce->productId);
     Log::debug(
         "Firmware version: %d.%d.%d.%d",
-        announce->firmwareVersion.build,
         announce->firmwareVersion.major,
         announce->firmwareVersion.minor,
+        announce->firmwareVersion.build,
         announce->firmwareVersion.revision
     );
     Log::debug(
         "Hardware version: %d.%d.%d.%d",
-        announce->hardwareVersion.build,
         announce->hardwareVersion.major,
         announce->hardwareVersion.minor,
+        announce->hardwareVersion.build,
         announce->hardwareVersion.revision
     );
 
-    InputDevice::AxisConfig stickConfig = {};
+    LedModeData ledMode = {};
 
-    // 16 bits (signed) for the sticks
-    stickConfig.minimum = -32768;
-    stickConfig.maximum = 32767;
-    stickConfig.fuzz = 255;
-    stickConfig.flat = 4095;
+    // Dim the LED a little bit, like the original driver
+    // Brightness ranges from 0x00 to 0x20
+    ledMode.mode = LED_ON;
+    ledMode.brightness = 0x14;
 
-    InputDevice::AxisConfig triggerConfig = {};
+    if (!setPowerMode(POWER_ON))
+    {
+        Log::error("Failed to set initial power mode");
 
-    // 10 bits (unsigned) for the triggers
-    triggerConfig.minimum = 0;
-    triggerConfig.maximum = 1023;
-    triggerConfig.fuzz = 3;
-    triggerConfig.flat = 63;
+        return;
+    }
 
-    InputDevice::AxisConfig dpadConfig = {};
+    if (!setLedMode(ledMode))
+    {
+        Log::error("Failed to set initial LED mode");
 
-    // 1 bit for the DPAD buttons
-    dpadConfig.minimum = -1;
-    dpadConfig.maximum = 1;
+        return;
+    }
 
-    inputDevice.addKey(BTN_MODE);
-    inputDevice.addKey(BTN_START);
-    inputDevice.addKey(BTN_SELECT);
-    inputDevice.addKey(BTN_A);
-    inputDevice.addKey(BTN_B);
-    inputDevice.addKey(BTN_X);
-    inputDevice.addKey(BTN_Y);
-    inputDevice.addKey(BTN_TL);
-    inputDevice.addKey(BTN_TR);
-    inputDevice.addKey(BTN_THUMBL);
-    inputDevice.addKey(BTN_THUMBR);
-    inputDevice.addAxis(ABS_X, stickConfig);
-    inputDevice.addAxis(ABS_RX, stickConfig);
-    inputDevice.addAxis(ABS_Y, stickConfig);
-    inputDevice.addAxis(ABS_RY, stickConfig);
-    inputDevice.addAxis(ABS_Z, triggerConfig);
-    inputDevice.addAxis(ABS_RZ, triggerConfig);
-    inputDevice.addAxis(ABS_HAT0X, dpadConfig);
-    inputDevice.addAxis(ABS_HAT0Y, dpadConfig);
-    inputDevice.addFeedback(FF_RUMBLE);
-    inputDevice.create(
-        announce->vendorId,
-        announce->productId,
-        "Xbox One Wireless Controller"
-    );
+    if (!requestSerialNumber())
+    {
+        Log::error("Failed to request serial number");
+
+        return;
+    }
+
+    setupInput(announce->vendorId, announce->productId);
 }
 
 void Controller::statusReceived(const StatusData *status)
@@ -154,6 +136,57 @@ void Controller::inputReceived(const InputData *input)
         input->buttons.dpadDown - input->buttons.dpadUp
     );
     inputDevice.report();
+}
+
+void Controller::setupInput(uint16_t vendorId, uint16_t productId)
+{
+    InputDevice::AxisConfig stickConfig = {};
+
+    // 16 bits (signed) for the sticks
+    stickConfig.minimum = -32768;
+    stickConfig.maximum = 32767;
+    stickConfig.fuzz = 255;
+    stickConfig.flat = 4095;
+
+    InputDevice::AxisConfig triggerConfig = {};
+
+    // 10 bits (unsigned) for the triggers
+    triggerConfig.minimum = 0;
+    triggerConfig.maximum = 1023;
+    triggerConfig.fuzz = 3;
+    triggerConfig.flat = 63;
+
+    InputDevice::AxisConfig dpadConfig = {};
+
+    // 1 bit for the DPAD buttons
+    dpadConfig.minimum = -1;
+    dpadConfig.maximum = 1;
+
+    inputDevice.addKey(BTN_MODE);
+    inputDevice.addKey(BTN_START);
+    inputDevice.addKey(BTN_SELECT);
+    inputDevice.addKey(BTN_A);
+    inputDevice.addKey(BTN_B);
+    inputDevice.addKey(BTN_X);
+    inputDevice.addKey(BTN_Y);
+    inputDevice.addKey(BTN_TL);
+    inputDevice.addKey(BTN_TR);
+    inputDevice.addKey(BTN_THUMBL);
+    inputDevice.addKey(BTN_THUMBR);
+    inputDevice.addAxis(ABS_X, stickConfig);
+    inputDevice.addAxis(ABS_RX, stickConfig);
+    inputDevice.addAxis(ABS_Y, stickConfig);
+    inputDevice.addAxis(ABS_RY, stickConfig);
+    inputDevice.addAxis(ABS_Z, triggerConfig);
+    inputDevice.addAxis(ABS_RZ, triggerConfig);
+    inputDevice.addAxis(ABS_HAT0X, dpadConfig);
+    inputDevice.addAxis(ABS_HAT0Y, dpadConfig);
+    inputDevice.addFeedback(FF_RUMBLE);
+    inputDevice.create(
+        vendorId,
+        productId,
+        "Xbox One Wireless Controller"
+    );
 }
 
 void Controller::feedbackReceived(ff_effect effect, uint16_t gain)
