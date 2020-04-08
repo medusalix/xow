@@ -581,11 +581,13 @@ bool Mt76::initRegisters()
         return false;
     }
 
-    uint16_t version = controlRead(MT_ASIC_VERSION) >> 16;
+    uint16_t asicVersion = controlRead(MT_ASIC_VERSION) >> 16;
+    uint16_t macVersion = controlRead(MT_MAC_CSR0) >> 16;
     Bytes chipId = efuseRead(MT_EE_CHIP_ID, sizeof(uint32_t));
     uint16_t id = (chipId[1] << 8) | chipId[2];
 
-    Log::debug("ASIC version: %x", version);
+    Log::debug("ASIC version: %x", asicVersion);
+    Log::debug("MAC version: %x", macVersion);
     Log::debug("Chip id: %x", id);
     Log::info("Wireless address: %s", Log::formatBytes(macAddress).c_str());
 
