@@ -1,12 +1,13 @@
 # See mt76.h for possible channels
 BUILD := DEBUG
-CHANNEL := 1
 VERSION := $(shell git describe --tags)
+LOCK_FILE := /tmp/xow.lock
+CHANNEL := 1
 
 FLAGS := -Wall -Wpedantic -std=c++11 -MMD
 DEBUG_FLAGS := -Og -g -DDEBUG
 RELEASE_FLAGS := -O3
-DEFINES := -DCHANNEL=$(CHANNEL) -DVERSION=\"$(VERSION)\"
+DEFINES := -DVERSION=\"$(VERSION)\" -DLOCK_FILE=\"$(LOCK_FILE)\" -DCHANNEL=$(CHANNEL)
 
 CXXFLAGS += $(FLAGS) $($(BUILD)_FLAGS) $(DEFINES)
 LDLIBS += -lstdc++ -lm -lusb-1.0 -lpthread
