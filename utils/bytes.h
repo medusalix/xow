@@ -115,6 +115,11 @@ public:
         return data[index];
     }
 
+    inline uint8_t& operator[](size_t index)
+    {
+        return data[index];
+    }
+
     inline bool operator==(const Bytes &other) const
     {
         return data == other.data;

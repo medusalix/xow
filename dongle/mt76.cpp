@@ -567,6 +567,17 @@ bool Mt76::initRegisters()
 
     macAddress = efuseRead(MT_EE_MAC_ADDR, 6);
 
+    // Some dongles' addresses start with 6c:5d:3a
+    // Controllers only connect to 62:45:bx:xx:xx:xx
+    if (macAddress[0] != 0x62)
+    {
+        Log::debug("Invalid MAC address, correcting...");
+
+        macAddress[0] = 0x62;
+        macAddress[1] = 0x45;
+        macAddress[2] = 0xbd;
+    }
+
     if (!burstWrite(MT_MAC_ADDR_DW0, macAddress))
     {
         Log::error("Failed to write MAC address");
