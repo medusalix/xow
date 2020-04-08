@@ -21,12 +21,32 @@
 #include "dongle/dongle.h"
 
 #include <cstdlib>
+#include <cstring>
 #include <stdexcept>
+#include <sys/file.h>
 
 int main()
 {
     Log::init();
     Log::info("xow %s ©Severin v. W.", VERSION);
+
+    // Open lock file, read and writable by all users
+    int file = open(LOCK_FILE, O_CREAT | O_RDWR, 0666);
+
+    if (flock(file, LOCK_EX | LOCK_NB))
+    {
+        if (errno == EWOULDBLOCK)
+        {
+            Log::error("Another instance of xow is already running");
+        }
+
+        else
+        {
+            Log::error("Error creating lock file: %s", strerror(errno));
+        }
+
+        return EXIT_FAILURE;
+    }
 
     try
     {
