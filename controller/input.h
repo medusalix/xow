@@ -22,6 +22,7 @@
 #include <functional>
 #include <string>
 #include <stdexcept>
+#include <poll.h>
 #include <linux/uinput.h>
 
 /*
@@ -70,7 +71,7 @@ public:
     }
 
 private:
-    void readEvents();
+    void readEvents(pollfd polls[]);
     void emitCode(
         uint16_t type,
         uint16_t code,

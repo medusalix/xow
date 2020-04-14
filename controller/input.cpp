@@ -23,7 +23,6 @@
 #include <thread>
 #include <unistd.h>
 #include <fcntl.h>
-#include <poll.h>
 
 #define INPUT_MAX_FF_EFFECTS 1
 
@@ -123,11 +122,6 @@ void InputDevice::create(
         throw InputException("Error creating device");
     }
 
-    readEvents();
-}
-
-void InputDevice::readEvents()
-{
     int pipes[2];
 
     if (pipe(pipes))
@@ -145,25 +139,27 @@ void InputDevice::readEvents()
     polls[0].events = POLLIN;
     polls[1].events = POLLIN;
 
-    std::thread([this, polls]() mutable
+    std::thread(&InputDevice::readEvents, this, polls).detach();
+}
+
+void InputDevice::readEvents(pollfd polls[])
+{
+    while (poll(polls, 2, -1) > 0)
     {
-        while (poll(polls, 2, -1) > 0)
+        // Event loop should stop
+        if (polls[1].revents & POLLIN)
         {
-            // Event loop should stop
-            if (polls[1].revents & POLLIN)
-            {
-                break;
-            }
-
-            input_event event = {};
-            ssize_t count = read(file, &event, sizeof(event));
-
-            if (count == sizeof(event))
-            {
-                handleEvent(event);
-            }
+            break;
         }
-    }).detach();
+
+        input_event event = {};
+        ssize_t count = read(file, &event, sizeof(event));
+
+        if (count == sizeof(event))
+        {
+            handleEvent(event);
+        }
+    }
 }
 
 void InputDevice::emitCode(
