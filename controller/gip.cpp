@@ -158,7 +158,7 @@ bool GipDevice::handlePacket(const Bytes &packet)
     return true;
 }
 
-bool GipDevice::setPowerMode(PowerMode mode)
+bool GipDevice::setPowerMode(PowerMode mode, bool accessory)
 {
     Frame frame = {};
     const Bytes data = { mode };
