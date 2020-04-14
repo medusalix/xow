@@ -48,6 +48,8 @@ public:
     inline Bytes(const Bytes &bytes, size_t skip)
         : data(bytes.data.begin() + skip, bytes.data.end()) {}
 
+    inline Bytes(size_t count) : data(count) {}
+
     inline Iterator begin() const
     {
         return data.begin();

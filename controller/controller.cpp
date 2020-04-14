@@ -20,14 +20,33 @@
 #include "../utils/log.h"
 
 #include <cmath>
+#include <thread>
+#include <chrono>
 #include <linux/input.h>
 
+#define DEVICE_NAME "Xbox One Wireless Controller"
+
+#define INPUT_STICK_FUZZ 255
+#define INPUT_STICK_FLAT 4095
+#define INPUT_TRIGGER_FUZZ 3
+#define INPUT_TRIGGER_FLAT 63
+
+#define AUDIO_SAMPLE_RATE 48000
+#define AUDIO_PACKET_COUNT 0x0600
+#define AUDIO_PACKET_DELAY std::chrono::milliseconds(7)
+
 Controller::Controller(SendPacket sendPacket) :
-    GipDevice(sendPacket), inputDevice(std::bind(
-        &Controller::feedbackReceived,
+    GipDevice(sendPacket),
+    inputDevice(std::bind(
+        &Controller::inputFeedbackReceived,
         this,
         std::placeholders::_1,
         std::placeholders::_2
+    )),
+    audioStream(std::bind(
+        &Controller::streamSamplesRead,
+        this,
+        std::placeholders::_1
     )) {}
 
 bool Controller::powerOff()
@@ -81,7 +100,35 @@ void Controller::deviceAnnounced(const AnnounceData *announce)
         return;
     }
 
+    if (!enableAccessoryDetection())
+    {
+        Log::error("Failed to enable accessory detection");
+
+        return;
+    }
+
     setupInput(announce->vendorId, announce->productId);
+}
+
+void Controller::accessoryAnnounced(const AnnounceData *announce)
+{
+    Log::info("Accessory announced");
+    Log::info("Assuming it's an audio device");
+
+    AudioEnableData audioEnable = {};
+
+    // First value has to be 0x02
+    // Other values are still unknown
+    audioEnable.unknown1 = 0x02;
+    audioEnable.unknown2 = 0x09;
+    audioEnable.unknown3 = 0x10;
+
+    if (!enableAudio(audioEnable))
+    {
+        Log::error("Failed to enable audio");
+
+        return;
+    }
 }
 
 void Controller::statusReceived(const StatusData *status)
@@ -93,10 +140,44 @@ void Controller::statusReceived(const StatusData *status)
     );
 }
 
+void Controller::accessoryRemoved(const StatusData *status)
+{
+    Log::info("Accessory removed");
+    Log::info("Stopping audio");
+
+    audioStream.stop();
+
+    if (!setPowerMode(POWER_SLEEP, true))
+    {
+        Log::error("Failed to set accessory power mode");
+
+        return;
+    }
+}
+
 void Controller::guideButtonPressed(const GuideButtonData *button)
 {
     inputDevice.setKey(BTN_MODE, button->pressed);
     inputDevice.report();
+}
+
+void Controller::audioEnabled(const AudioEnableData *enable)
+{
+    Log::info("Audio enabled");
+
+    if (!setPowerMode(POWER_ON, true))
+    {
+        Log::error("Failed to set audio power mode");
+
+        return;
+    }
+
+    // Don't wait for the second "audio enabled" event
+    audioStream.start(
+        AUDIO_SAMPLE_RATE,
+        AUDIO_PACKET_COUNT,
+        DEVICE_NAME
+    );
 }
 
 void Controller::serialNumberReceived(const SerialData *serial)
@@ -138,6 +219,11 @@ void Controller::inputReceived(const InputData *input)
     inputDevice.report();
 }
 
+void Controller::audioSamplesReceived(const Bytes &samples)
+{
+    audioStream.write(samples);
+}
+
 void Controller::setupInput(uint16_t vendorId, uint16_t productId)
 {
     InputDevice::AxisConfig stickConfig = {};
@@ -145,16 +231,16 @@ void Controller::setupInput(uint16_t vendorId, uint16_t productId)
     // 16 bits (signed) for the sticks
     stickConfig.minimum = -32768;
     stickConfig.maximum = 32767;
-    stickConfig.fuzz = 255;
-    stickConfig.flat = 4095;
+    stickConfig.fuzz = INPUT_STICK_FUZZ;
+    stickConfig.flat = INPUT_STICK_FLAT;
 
     InputDevice::AxisConfig triggerConfig = {};
 
     // 10 bits (unsigned) for the triggers
     triggerConfig.minimum = 0;
     triggerConfig.maximum = 1023;
-    triggerConfig.fuzz = 3;
-    triggerConfig.flat = 63;
+    triggerConfig.fuzz = INPUT_TRIGGER_FUZZ;
+    triggerConfig.flat = INPUT_TRIGGER_FLAT;
 
     InputDevice::AxisConfig dpadConfig = {};
 
@@ -182,14 +268,10 @@ void Controller::setupInput(uint16_t vendorId, uint16_t productId)
     inputDevice.addAxis(ABS_HAT0X, dpadConfig);
     inputDevice.addAxis(ABS_HAT0Y, dpadConfig);
     inputDevice.addFeedback(FF_RUMBLE);
-    inputDevice.create(
-        vendorId,
-        productId,
-        "Xbox One Wireless Controller"
-    );
+    inputDevice.create(vendorId, productId, DEVICE_NAME);
 }
 
-void Controller::feedbackReceived(ff_effect effect, uint16_t gain)
+void Controller::inputFeedbackReceived(ff_effect effect, uint16_t gain)
 {
     if (effect.type != FF_RUMBLE)
     {
@@ -201,7 +283,7 @@ void Controller::feedbackReceived(ff_effect effect, uint16_t gain)
         return;
     }
 
-    // Map Linux' magnitudes to rumble power
+    // Map effect's magnitudes to rumble power
     uint8_t weak = static_cast<uint32_t>(
         effect.u.rumble.weak_magnitude
     ) * gain / 0xffffff;
@@ -234,7 +316,7 @@ void Controller::feedbackReceived(ff_effect effect, uint16_t gain)
         float right = cos(2 * M_PI * angle);
         uint8_t maxPower = strong > weak ? strong : weak;
 
-        // Limit values to the left and right areas
+        // Limit values to left and right areas
         left = left > 0 ? left : 0;
         right = right < 0 ? -right : 0;
 
@@ -246,4 +328,11 @@ void Controller::feedbackReceived(ff_effect effect, uint16_t gain)
     performRumble(rumble);
 
     rumbling = gain > 0;
+}
+
+void Controller::streamSamplesRead(const Bytes &samples)
+{
+    sendAudioSamples(samples);
+
+    std::this_thread::sleep_for(AUDIO_PACKET_DELAY);
 }

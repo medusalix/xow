@@ -8,7 +8,7 @@ RELEASE_FLAGS := -O3
 DEFINES := -DVERSION=\"$(VERSION)\" -DLOCK_FILE=\"$(LOCK_FILE)\"
 
 CXXFLAGS += $(FLAGS) $($(BUILD)_FLAGS) $(DEFINES)
-LDLIBS += -lstdc++ -lm -lusb-1.0 -lpthread
+LDLIBS += -lstdc++ -lm -lpthread -lusb-1.0 -lpulse -lpulse-simple
 SOURCES := $(wildcard *.cpp) $(wildcard */*.cpp)
 OBJECTS := $(patsubst %.cpp,%.o,$(SOURCES)) firmware.o
 DEPENDENCIES := $(OBJECTS:.o=.d)
@@ -18,7 +18,7 @@ BINDIR := $(PREFIX)/bin
 UDEVDIR := /lib/udev/rules.d
 MODLDIR := /lib/modules-load.d
 MODPDIR := /lib/modprobe.d
-SYSDDIR := /lib/systemd/system
+SYSDDIR := /lib/systemd/user
 
 .PHONY: all
 all: xow

@@ -122,6 +122,13 @@ protected:
         uint8_t unknown;
     } __attribute__((packed));
 
+    struct AudioEnableData
+    {
+        uint8_t unknown1;
+        uint8_t unknown2;
+        uint8_t unknown3;
+    } __attribute__((packed));
+
     struct RumbleData
     {
         uint8_t unknown1;
@@ -181,18 +188,28 @@ protected:
     GipDevice(SendPacket sendPacket);
 
     virtual void deviceAnnounced(const AnnounceData *announce) = 0;
+    virtual void accessoryAnnounced(const AnnounceData *announce) = 0;
     virtual void statusReceived(const StatusData *status) = 0;
+    virtual void accessoryRemoved(const StatusData *status) = 0;
     virtual void guideButtonPressed(const GuideButtonData *button) = 0;
+    virtual void audioEnabled(const AudioEnableData *enable) = 0;
     virtual void serialNumberReceived(const SerialData *serial) = 0;
     virtual void inputReceived(const InputData *input) = 0;
+    virtual void audioSamplesReceived(const Bytes &samples) = 0;
 
-    bool setPowerMode(PowerMode mode);
-    bool performRumble(RumbleData data);
-    bool setLedMode(LedModeData data);
+    bool setPowerMode(PowerMode mode, bool accessory = false);
+    bool enableAccessoryDetection();
+    bool enableAudio(AudioEnableData enable);
+    bool performRumble(RumbleData rumble);
+    bool setLedMode(LedModeData mode);
     bool requestSerialNumber();
+    bool sendAudioSamples(const Bytes &samples);
 
 private:
     bool acknowledgePacket(const Frame *packet);
+    uint8_t getSequence(bool accessory = false);
 
+    uint8_t sequence = 0x01;
+    uint8_t accessorySequence = 0x01;
     SendPacket sendPacket;
 };

@@ -64,6 +64,7 @@ Any issues regarding the packaging should be reported to the respective maintain
 
 - Linux (kernel 4.5 or newer)
 - libusb (libusb-1.0-0-dev for Debian)
+- PulseAudio (libpulse-dev for Debian)
 - systemd (version 232 or newer)
 
 Clone the repository (necessary for version tagging to work):
@@ -84,8 +85,8 @@ Install xow as a `systemd` service (starts xow at boot time):
 
 ```
 sudo make install
-sudo systemctl enable xow
-sudo systemctl start xow
+systemctl --user enable xow
+systemctl --user start xow
 ```
 
 **NOTE:** A reboot might be required for xow to work correctly.
@@ -95,10 +96,12 @@ sudo systemctl start xow
 Make sure to completely uninstall xow before updating:
 
 ```
-sudo systemctl stop xow
-sudo systemctl disable xow
+systemctl --user stop xow
+systemctl --user disable xow
 sudo make uninstall
 ```
+
+**NOTE:** If you are running a version lower than 0.5, you **have to** substitute `systemctl --user` with `sudo systemctl` for the aforementioned commands.
 
 ## Troubleshooting
 

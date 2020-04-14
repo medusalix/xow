@@ -27,12 +27,14 @@ enum FrameCommand
     CMD_STATUS = 0x03,
     CMD_AUTHENTICATE = 0x04,
     CMD_POWER_MODE = 0x05,
-    CMD_READ_EEPROM = 0x06,
+    CMD_CUSTOM = 0x06,
     CMD_GUIDE_BTN = 0x07,
+    CMD_AUDIO_ENABLE = 0x08,
     CMD_RUMBLE = 0x09,
     CMD_LED_MODE = 0x0a,
     CMD_SERIAL_NUM = 0x1e,
     CMD_INPUT = 0x20,
+    CMD_AUDIO_SAMPLES = 0x60,
 };
 
 // Different frame types
@@ -43,6 +45,7 @@ enum FrameType
 {
     TYPE_COMMAND = 0x00,
     TYPE_REQUEST = 0x20,
+    TYPE_ACCESSORY = 0x21,
     TYPE_REQUEST_ACK = 0x30,
 };
 
@@ -64,18 +67,38 @@ bool GipDevice::handlePacket(const Bytes &packet)
         frame->command == CMD_ANNOUNCE &&
         frame->length == sizeof(AnnounceData)
     ) {
-        deviceAnnounced(
-            packet.toStruct<AnnounceData>(sizeof(Frame))
-        );
+        if (frame->type == TYPE_REQUEST)
+        {
+            deviceAnnounced(
+                packet.toStruct<AnnounceData>(sizeof(Frame))
+            );
+        }
+
+        else if (frame->type == TYPE_ACCESSORY)
+        {
+            accessoryAnnounced(
+                packet.toStruct<AnnounceData>(sizeof(Frame))
+            );
+        }
     }
 
     else if (
         frame->command == CMD_STATUS &&
         frame->length == sizeof(StatusData)
     ) {
-        statusReceived(
-            packet.toStruct<StatusData>(sizeof(Frame))
-        );
+        if (frame->type == TYPE_REQUEST)
+        {
+            statusReceived(
+                packet.toStruct<StatusData>(sizeof(Frame))
+            );
+        }
+
+        else if (frame->type == TYPE_ACCESSORY)
+        {
+            accessoryRemoved(
+                packet.toStruct<StatusData>(sizeof(Frame))
+            );
+        }
     }
 
     else if (
@@ -91,6 +114,15 @@ bool GipDevice::handlePacket(const Bytes &packet)
 
         guideButtonPressed(
             packet.toStruct<GuideButtonData>(sizeof(Frame))
+        );
+    }
+
+    else if (
+        frame->command == CMD_AUDIO_ENABLE &&
+        frame->length == sizeof(AudioEnableData)
+    ) {
+        audioEnabled(
+            packet.toStruct<AudioEnableData>(sizeof(Frame))
         );
     }
 
@@ -132,7 +164,8 @@ bool GipDevice::setPowerMode(PowerMode mode)
     const Bytes data = { mode };
 
     frame.command = CMD_POWER_MODE;
-    frame.type = TYPE_REQUEST;
+    frame.type = accessory ? TYPE_ACCESSORY : TYPE_REQUEST;
+    frame.sequence = getSequence();
     frame.length = data.size();
 
     Bytes out;
@@ -143,13 +176,15 @@ bool GipDevice::setPowerMode(PowerMode mode)
     return sendPacket(out);
 }
 
-bool GipDevice::performRumble(RumbleData data)
+bool GipDevice::enableAccessoryDetection()
 {
     Frame frame = {};
+    const Bytes data = { 0x01, 0x00 };
 
-    frame.command = CMD_RUMBLE;
-    frame.type = TYPE_COMMAND;
-    frame.length = sizeof(data);
+    frame.command = CMD_CUSTOM;
+    frame.type = TYPE_REQUEST;
+    frame.sequence = getSequence();
+    frame.length = data.size();
 
     Bytes out;
 
@@ -159,18 +194,53 @@ bool GipDevice::performRumble(RumbleData data)
     return sendPacket(out);
 }
 
-bool GipDevice::setLedMode(LedModeData data)
+bool GipDevice::enableAudio(AudioEnableData enable)
+{
+    Frame frame = {};
+
+    frame.command = CMD_AUDIO_ENABLE;
+    frame.type = TYPE_ACCESSORY;
+    frame.sequence = getSequence();
+    frame.length = sizeof(enable);
+
+    Bytes out;
+
+    out.append(frame);
+    out.append(enable);
+
+    return sendPacket(out);
+}
+
+bool GipDevice::performRumble(RumbleData rumble)
+{
+    Frame frame = {};
+
+    frame.command = CMD_RUMBLE;
+    frame.type = TYPE_COMMAND;
+    frame.sequence = getSequence();
+    frame.length = sizeof(rumble);
+
+    Bytes out;
+
+    out.append(frame);
+    out.append(rumble);
+
+    return sendPacket(out);
+}
+
+bool GipDevice::setLedMode(LedModeData mode)
 {
     Frame frame = {};
 
     frame.command = CMD_LED_MODE;
     frame.type = TYPE_REQUEST;
-    frame.length = sizeof(data);
+    frame.sequence = getSequence();
+    frame.length = sizeof(mode);
 
     Bytes out;
 
     out.append(frame);
-    out.append(data);
+    out.append(mode);
 
     return sendPacket(out);
 }
@@ -182,12 +252,33 @@ bool GipDevice::requestSerialNumber()
 
     frame.command = CMD_SERIAL_NUM;
     frame.type = TYPE_REQUEST_ACK;
+    frame.sequence = getSequence();
     frame.length = data.size();
 
     Bytes out;
 
     out.append(frame);
     out.append(data);
+
+    return sendPacket(out);
+}
+
+bool GipDevice::sendAudioSamples(const Bytes &samples)
+{
+    // The frame data is somehow related to the sample rate
+    Frame frame = {};
+    const Bytes data = { 0x8c, 0x00 };
+
+    frame.command = CMD_AUDIO_SAMPLES;
+    frame.type = TYPE_ACCESSORY;
+    frame.sequence = getSequence(true);
+    frame.length = samples.size() / 12;
+
+    Bytes out;
+
+    out.append(frame);
+    out.append(data);
+    out.append(samples);
 
     return sendPacket(out);
 }
@@ -215,4 +306,25 @@ bool GipDevice::acknowledgePacket(const Frame *packet)
     out.pad(5);
 
     return sendPacket(out);
+}
+
+uint8_t GipDevice::getSequence(bool accessory)
+{
+    if (accessory)
+    {
+        // Zero is an invalid sequence number
+        if (accessorySequence == 0x00)
+        {
+            accessorySequence = 0x01;
+        }
+
+        return accessorySequence++;
+    }
+
+    if (sequence == 0x00)
+    {
+        sequence = 0x01;
+    }
+
+    return sequence++;
 }

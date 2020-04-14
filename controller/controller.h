@@ -20,6 +20,7 @@
 
 #include "gip.h"
 #include "input.h"
+#include "audio.h"
 
 /*
  * Forwards gamepad events to virtual input device
@@ -33,18 +34,26 @@ public:
     bool powerOff();
 
 private:
+    /* GIP events */
     void deviceAnnounced(const AnnounceData *announce) override;
+    void accessoryAnnounced(const AnnounceData *announce) override;
     void statusReceived(const StatusData *status) override;
+    void accessoryRemoved(const StatusData *status) override;
     void guideButtonPressed(const GuideButtonData *button) override;
+    void audioEnabled(const AudioEnableData *enable) override;
     void serialNumberReceived(const SerialData *serial) override;
     void inputReceived(const InputData *input) override;
+    void audioSamplesReceived(const Bytes &samples) override;
 
+    /* OS interface */
     void setupInput(uint16_t vendorId, uint16_t productId);
-    void feedbackReceived(
+    void inputFeedbackReceived(
         ff_effect effect,
         uint16_t gain
     );
+    void streamSamplesRead(const Bytes &samples);
 
     InputDevice inputDevice;
+    AudioStream audioStream;
     bool rumbling = false;
 };
