@@ -5,7 +5,7 @@ Description=Xbox One Wireless Dongle Driver
 Type=idle
 ExecStart=#BINDIR#/xow
 DynamicUser=true
-Restart=always
+Restart=on-success
 
 [Install]
 WantedBy=multi-user.target
