@@ -35,8 +35,9 @@
 #define AUDIO_PACKET_COUNT 0x0600
 #define AUDIO_PACKET_DELAY std::chrono::milliseconds(7)
 
-Controller::Controller(SendPacket sendPacket) :
-    GipDevice(sendPacket),
+Controller::Controller(
+    SendPacket sendPacket
+) : GipDevice(sendPacket),
     inputDevice(std::bind(
         &Controller::inputFeedbackReceived,
         this,

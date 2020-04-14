@@ -296,8 +296,12 @@ int UsbDeviceManager::hotplugCallback(
     return 0;
 }
 
-UsbException::UsbException(std::string message, int error)
-    : std::runtime_error(message + libusb_error_name(error)) {}
+UsbException::UsbException(
+    std::string message,
+    int error
+) : std::runtime_error(message + libusb_error_name(error)) {}
 
-UsbException::UsbException(std::string message, std::string error)
-    : std::runtime_error(message + error) {}
+UsbException::UsbException(
+    std::string message,
+    std::string error
+) : std::runtime_error(message + error) {}

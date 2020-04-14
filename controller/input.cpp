@@ -27,7 +27,9 @@
 
 #define INPUT_MAX_FF_EFFECTS 1
 
-InputDevice::InputDevice(FeedbackReceived feedbackReceived)
+InputDevice::InputDevice(
+    FeedbackReceived feedbackReceived
+) : feedbackReceived(feedbackReceived)
 {
     file = open("/dev/uinput", O_RDWR | O_NONBLOCK);
 
@@ -35,8 +37,6 @@ InputDevice::InputDevice(FeedbackReceived feedbackReceived)
     {
         throw InputException("Error opening device");
     }
-
-    this->feedbackReceived = feedbackReceived;
 }
 
 InputDevice::~InputDevice()
@@ -274,5 +274,6 @@ void InputDevice::handleEvent(input_event event)
     }
 }
 
-InputException::InputException(std::string message) :
-    std::runtime_error(message + ": " + strerror(errno)) {}
+InputException::InputException(
+    std::string message
+) : std::runtime_error(message + ": " + strerror(errno)) {}
