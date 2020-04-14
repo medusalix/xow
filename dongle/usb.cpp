@@ -245,6 +245,9 @@ void UsbDeviceManager::handleEvents(UsbDevice &device)
         Log::debug("Device error, terminating...");
 
         run = false;
+
+        // Interrupt the event handling
+        libusb_hotplug_deregister_callback(nullptr, hotplugHandle);
     };
 
     // Dedicated thread for signal handling
