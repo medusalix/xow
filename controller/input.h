@@ -71,7 +71,7 @@ public:
     }
 
 private:
-    void readEvents(pollfd polls[]);
+    void readEvents(pollfd polls[2]);
     void emitCode(
         uint16_t type,
         uint16_t code,

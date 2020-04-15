@@ -142,7 +142,7 @@ void InputDevice::create(
     std::thread(&InputDevice::readEvents, this, polls).detach();
 }
 
-void InputDevice::readEvents(pollfd polls[])
+void InputDevice::readEvents(pollfd polls[2])
 {
     while (poll(polls, 2, -1) > 0)
     {
