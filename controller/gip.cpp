@@ -67,19 +67,9 @@ bool GipDevice::handlePacket(const Bytes &packet)
         frame->command == CMD_ANNOUNCE &&
         frame->length == sizeof(AnnounceData)
     ) {
-        if (frame->type == TYPE_REQUEST)
-        {
-            deviceAnnounced(
-                packet.toStruct<AnnounceData>(sizeof(Frame))
-            );
-        }
-
-        else if (frame->type == TYPE_ACCESSORY)
-        {
-            accessoryAnnounced(
-                packet.toStruct<AnnounceData>(sizeof(Frame))
-            );
-        }
+        deviceAnnounced(
+            packet.toStruct<AnnounceData>(sizeof(Frame))
+        );
     }
 
     else if (

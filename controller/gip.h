@@ -188,7 +188,6 @@ protected:
     GipDevice(SendPacket sendPacket);
 
     virtual void deviceAnnounced(const AnnounceData *announce) = 0;
-    virtual void accessoryAnnounced(const AnnounceData *announce) = 0;
     virtual void statusReceived(const StatusData *status) = 0;
     virtual void accessoryRemoved(const StatusData *status) = 0;
     virtual void guideButtonPressed(const GuideButtonData *button) = 0;

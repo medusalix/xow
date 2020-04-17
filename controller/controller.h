@@ -36,7 +36,6 @@ public:
 private:
     /* GIP events */
     void deviceAnnounced(const AnnounceData *announce) override;
-    void accessoryAnnounced(const AnnounceData *announce) override;
     void statusReceived(const StatusData *status) override;
     void accessoryRemoved(const StatusData *status) override;
     void guideButtonPressed(const GuideButtonData *button) override;
@@ -45,8 +44,11 @@ private:
     void inputReceived(const InputData *input) override;
     void audioSamplesReceived(const Bytes &samples) override;
 
-    /* OS interface */
+    /* Device initialization */
     void setupInput(uint16_t vendorId, uint16_t productId);
+    void setupAudio();
+
+    /* OS interface */
     void inputFeedbackReceived(
         ff_effect effect,
         uint16_t gain

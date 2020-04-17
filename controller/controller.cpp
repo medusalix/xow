@@ -24,6 +24,8 @@
 #include <chrono>
 #include <linux/input.h>
 
+#define DEVICE_VID_MICROSOFT 0x045e
+#define DEVICE_PID_HEADSET 0x02f6
 #define DEVICE_NAME "Xbox One Wireless Controller"
 
 #define INPUT_STICK_FUZZ 255
@@ -57,7 +59,7 @@ bool Controller::powerOff()
 
 void Controller::deviceAnnounced(const AnnounceData *announce)
 {
-    Log::info("Product ID: %04x", announce->productId);
+    Log::info("Device announced, id: %04x", announce->productId);
     Log::debug(
         "Firmware version: %d.%d.%d.%d",
         announce->firmwareVersion.major,
@@ -73,62 +75,25 @@ void Controller::deviceAnnounced(const AnnounceData *announce)
         announce->hardwareVersion.revision
     );
 
-    LedModeData ledMode = {};
-
-    // Dim the LED a little bit, like the original driver
-    // Brightness ranges from 0x00 to 0x20
-    ledMode.mode = LED_ON;
-    ledMode.brightness = 0x14;
-
-    if (!setPowerMode(POWER_ON))
+    if (announce->vendorId != DEVICE_VID_MICROSOFT)
     {
-        Log::error("Failed to set initial power mode");
+        Log::info("Unsupported device type (non-Microsoft)");
 
         return;
     }
 
-    if (!setLedMode(ledMode))
+    if (announce->productId == DEVICE_PID_HEADSET)
     {
-        Log::error("Failed to set initial LED mode");
+        Log::info("Device type: headset");
 
-        return;
+        setupAudio();
     }
 
-    if (!requestSerialNumber())
+    else
     {
-        Log::error("Failed to request serial number");
+        Log::info("Device type: controller");
 
-        return;
-    }
-
-    if (!enableAccessoryDetection())
-    {
-        Log::error("Failed to enable accessory detection");
-
-        return;
-    }
-
-    setupInput(announce->vendorId, announce->productId);
-}
-
-void Controller::accessoryAnnounced(const AnnounceData *announce)
-{
-    Log::info("Accessory announced");
-    Log::info("Assuming it's an audio device");
-
-    AudioEnableData audioEnable = {};
-
-    // First value has to be 0x02
-    // Other values are still unknown
-    audioEnable.unknown1 = 0x02;
-    audioEnable.unknown2 = 0x09;
-    audioEnable.unknown3 = 0x10;
-
-    if (!enableAudio(audioEnable))
-    {
-        Log::error("Failed to enable audio");
-
-        return;
+        setupInput(announce->vendorId, announce->productId);
     }
 }
 
@@ -227,6 +192,41 @@ void Controller::audioSamplesReceived(const Bytes &samples)
 
 void Controller::setupInput(uint16_t vendorId, uint16_t productId)
 {
+    LedModeData ledMode = {};
+
+    // Dim the LED a little bit, like the original driver
+    // Brightness ranges from 0x00 to 0x20
+    ledMode.mode = LED_ON;
+    ledMode.brightness = 0x14;
+
+    if (!setPowerMode(POWER_ON))
+    {
+        Log::error("Failed to set initial power mode");
+
+        return;
+    }
+
+    if (!setLedMode(ledMode))
+    {
+        Log::error("Failed to set initial LED mode");
+
+        return;
+    }
+
+    if (!requestSerialNumber())
+    {
+        Log::error("Failed to request serial number");
+
+        return;
+    }
+
+    if (!enableAccessoryDetection())
+    {
+        Log::error("Failed to enable accessory detection");
+
+        return;
+    }
+
     InputDevice::AxisConfig stickConfig = {};
 
     // 16 bits (signed) for the sticks
@@ -270,6 +270,24 @@ void Controller::setupInput(uint16_t vendorId, uint16_t productId)
     inputDevice.addAxis(ABS_HAT0Y, dpadConfig);
     inputDevice.addFeedback(FF_RUMBLE);
     inputDevice.create(vendorId, productId, DEVICE_NAME);
+}
+
+void Controller::setupAudio()
+{
+    AudioEnableData audioEnable = {};
+
+    // First value has to be 0x02
+    // Other values are still unknown
+    audioEnable.unknown1 = 0x02;
+    audioEnable.unknown2 = 0x09;
+    audioEnable.unknown3 = 0x10;
+
+    if (!enableAudio(audioEnable))
+    {
+        Log::error("Failed to enable audio");
+
+        return;
+    }
 }
 
 void Controller::inputFeedbackReceived(ff_effect effect, uint16_t gain)
