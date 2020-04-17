@@ -1,5 +1,5 @@
 [Unit]
-Description=Xbox One Wireless Dongle Driver
+Description=Xbox One Wireless Driver
 
 [Service]
 Type=idle
