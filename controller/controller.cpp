@@ -25,7 +25,8 @@
 #include <linux/input.h>
 
 #define DEVICE_VID_MICROSOFT 0x045e
-#define DEVICE_PID_HEADSET 0x02f6
+#define DEVICE_PID_HEADSET_OLD 0x02e4
+#define DEVICE_PID_HEADSET_NEW 0x02f6
 #define DEVICE_NAME "Xbox One Wireless Controller"
 
 #define INPUT_STICK_FUZZ 255
@@ -82,8 +83,10 @@ void Controller::deviceAnnounced(const AnnounceData *announce)
         return;
     }
 
-    if (announce->productId == DEVICE_PID_HEADSET)
-    {
+    if (
+        announce->productId == DEVICE_PID_HEADSET_OLD ||
+        announce->productId == DEVICE_PID_HEADSET_NEW
+    ) {
         Log::info("Device type: headset");
 
         setupAudio();
