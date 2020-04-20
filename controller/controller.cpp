@@ -24,9 +24,8 @@
 #include <chrono>
 #include <linux/input.h>
 
-#define DEVICE_VID_MICROSOFT 0x045e
-#define DEVICE_PID_HEADSET_OLD 0x02e4
-#define DEVICE_PID_HEADSET_NEW 0x02f6
+// Accessories use IDs greater than zero
+#define DEVICE_ID_CONTROLLER 0
 #define DEVICE_NAME "Xbox One Wireless Controller"
 
 #define INPUT_STICK_FUZZ 255
@@ -55,12 +54,12 @@ Controller::Controller(
 
 bool Controller::powerOff()
 {
-    return setPowerMode(POWER_OFF);
+    return setPowerMode(DEVICE_ID_CONTROLLER, POWER_OFF);
 }
 
-void Controller::deviceAnnounced(const AnnounceData *announce)
+void Controller::deviceAnnounced(uint8_t id, const AnnounceData *announce)
 {
-    Log::info("Device announced, id: %04x", announce->productId);
+    Log::info("Device announced, product id: %04x", announce->productId);
     Log::debug(
         "Firmware version: %d.%d.%d.%d",
         announce->firmwareVersion.major,
@@ -76,51 +75,44 @@ void Controller::deviceAnnounced(const AnnounceData *announce)
         announce->hardwareVersion.revision
     );
 
-    if (announce->vendorId != DEVICE_VID_MICROSOFT)
-    {
-        Log::info("Unsupported device type (non-Microsoft)");
-
-        return;
-    }
-
-    if (
-        announce->productId == DEVICE_PID_HEADSET_OLD ||
-        announce->productId == DEVICE_PID_HEADSET_NEW
-    ) {
-        Log::info("Device type: headset");
-
-        setupAudio();
-    }
-
-    else
+    if (id == DEVICE_ID_CONTROLLER)
     {
         Log::info("Device type: controller");
 
         setupInput(announce->vendorId, announce->productId);
     }
-}
 
-void Controller::statusReceived(const StatusData *status)
-{
-    Log::debug(
-        "Battery type: %d, level: %d",
-        status->batteryType,
-        status->batteryLevel
-    );
-}
-
-void Controller::accessoryRemoved(const StatusData *status)
-{
-    Log::info("Accessory removed");
-    Log::info("Stopping audio");
-
-    audioStream.stop();
-
-    if (!setPowerMode(POWER_SLEEP, true))
+    else
     {
-        Log::error("Failed to set accessory power mode");
+        // We just assume that every accessory is a headset
+        Log::info("Device type: headset");
 
-        return;
+        setupAudio(id);
+    }
+}
+
+void Controller::statusReceived(uint8_t id, const StatusData *status)
+{
+    if (id == DEVICE_ID_CONTROLLER)
+    {
+        Log::debug(
+            "Battery type: %d, level: %d",
+            status->batteryType,
+            status->batteryLevel
+        );
+    }
+
+    else
+    {
+        Log::info("Accessory removed");
+        Log::info("Stopping audio");
+
+        audioStream.stop();
+
+        if (!setPowerMode(id, POWER_SLEEP))
+        {
+            Log::error("Failed to set accessory power mode");
+        }
     }
 }
 
@@ -130,11 +122,11 @@ void Controller::guideButtonPressed(const GuideButtonData *button)
     inputDevice.report();
 }
 
-void Controller::audioEnabled(const AudioEnableData *enable)
+void Controller::audioEnabled(uint8_t id, const AudioEnableData *enable)
 {
     Log::info("Audio enabled");
 
-    if (!setPowerMode(POWER_ON, true))
+    if (!setPowerMode(id, POWER_ON))
     {
         Log::error("Failed to set audio power mode");
 
@@ -202,7 +194,7 @@ void Controller::setupInput(uint16_t vendorId, uint16_t productId)
     ledMode.mode = LED_ON;
     ledMode.brightness = 0x14;
 
-    if (!setPowerMode(POWER_ON))
+    if (!setPowerMode(DEVICE_ID_CONTROLLER, POWER_ON))
     {
         Log::error("Failed to set initial power mode");
 
@@ -275,7 +267,7 @@ void Controller::setupInput(uint16_t vendorId, uint16_t productId)
     inputDevice.create(vendorId, productId, DEVICE_NAME);
 }
 
-void Controller::setupAudio()
+void Controller::setupAudio(uint8_t id)
 {
     AudioEnableData audioEnable = {};
 
@@ -285,12 +277,14 @@ void Controller::setupAudio()
     audioEnable.unknown2 = 0x09;
     audioEnable.unknown3 = 0x10;
 
-    if (!enableAudio(audioEnable))
+    if (!enableAudio(id, audioEnable))
     {
         Log::error("Failed to enable audio");
 
         return;
     }
+
+    audioId = id;
 }
 
 void Controller::inputFeedbackReceived(ff_effect effect, uint16_t gain)
@@ -354,7 +348,7 @@ void Controller::inputFeedbackReceived(ff_effect effect, uint16_t gain)
 
 void Controller::streamSamplesRead(const Bytes &samples)
 {
-    sendAudioSamples(samples);
+    sendAudioSamples(audioId, samples);
 
     std::this_thread::sleep_for(AUDIO_PACKET_DELAY);
 }

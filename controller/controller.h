@@ -35,18 +35,17 @@ public:
 
 private:
     /* GIP events */
-    void deviceAnnounced(const AnnounceData *announce) override;
-    void statusReceived(const StatusData *status) override;
-    void accessoryRemoved(const StatusData *status) override;
+    void deviceAnnounced(uint8_t id, const AnnounceData *announce) override;
+    void statusReceived(uint8_t id, const StatusData *status) override;
     void guideButtonPressed(const GuideButtonData *button) override;
-    void audioEnabled(const AudioEnableData *enable) override;
+    void audioEnabled(uint8_t id, const AudioEnableData *enable) override;
     void serialNumberReceived(const SerialData *serial) override;
     void inputReceived(const InputData *input) override;
     void audioSamplesReceived(const Bytes &samples) override;
 
     /* Device initialization */
     void setupInput(uint16_t vendorId, uint16_t productId);
-    void setupAudio();
+    void setupAudio(uint8_t id);
 
     /* OS interface */
     void inputFeedbackReceived(
@@ -56,6 +55,8 @@ private:
     void streamSamplesRead(const Bytes &samples);
 
     InputDevice inputDevice;
-    AudioStream audioStream;
     bool rumbling = false;
+
+    AudioStream audioStream;
+    uint8_t audioId = 0;
 };

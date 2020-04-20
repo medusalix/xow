@@ -187,25 +187,24 @@ protected:
 
     GipDevice(SendPacket sendPacket);
 
-    virtual void deviceAnnounced(const AnnounceData *announce) = 0;
-    virtual void statusReceived(const StatusData *status) = 0;
-    virtual void accessoryRemoved(const StatusData *status) = 0;
+    virtual void deviceAnnounced(uint8_t id, const AnnounceData *announce) = 0;
+    virtual void statusReceived(uint8_t id, const StatusData *status) = 0;
     virtual void guideButtonPressed(const GuideButtonData *button) = 0;
-    virtual void audioEnabled(const AudioEnableData *enable) = 0;
+    virtual void audioEnabled(uint8_t id, const AudioEnableData *enable) = 0;
     virtual void serialNumberReceived(const SerialData *serial) = 0;
     virtual void inputReceived(const InputData *input) = 0;
     virtual void audioSamplesReceived(const Bytes &samples) = 0;
 
-    bool setPowerMode(PowerMode mode, bool accessory = false);
+    bool setPowerMode(uint8_t id, PowerMode mode);
     bool enableAccessoryDetection();
-    bool enableAudio(AudioEnableData enable);
+    bool enableAudio(uint8_t id, AudioEnableData enable);
     bool performRumble(RumbleData rumble);
     bool setLedMode(LedModeData mode);
     bool requestSerialNumber();
-    bool sendAudioSamples(const Bytes &samples);
+    bool sendAudioSamples(uint8_t id, const Bytes &samples);
 
 private:
-    bool acknowledgePacket(const Frame *packet);
+    bool acknowledgePacket(Frame packet);
     uint8_t getSequence(bool accessory = false);
 
     uint8_t sequence = 0x01;

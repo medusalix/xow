@@ -44,15 +44,15 @@ enum FrameCommand
 enum FrameType
 {
     TYPE_COMMAND = 0x00,
-    TYPE_REQUEST = 0x20,
-    TYPE_ACCESSORY = 0x21,
-    TYPE_REQUEST_ACK = 0x30,
+    TYPE_REQUEST = 0x02,
+    TYPE_REQUEST_ACK = 0x03,
 };
 
 struct Frame
 {
     uint8_t command;
-    uint8_t type;
+    uint8_t deviceId : 4;
+    uint8_t type : 4;
     uint8_t sequence;
     uint8_t length;
 } __attribute__((packed));
@@ -68,6 +68,7 @@ bool GipDevice::handlePacket(const Bytes &packet)
         frame->length == sizeof(AnnounceData)
     ) {
         deviceAnnounced(
+            frame->deviceId,
             packet.toStruct<AnnounceData>(sizeof(Frame))
         );
     }
@@ -76,26 +77,17 @@ bool GipDevice::handlePacket(const Bytes &packet)
         frame->command == CMD_STATUS &&
         frame->length == sizeof(StatusData)
     ) {
-        if (frame->type == TYPE_REQUEST)
-        {
-            statusReceived(
-                packet.toStruct<StatusData>(sizeof(Frame))
-            );
-        }
-
-        else if (frame->type == TYPE_ACCESSORY)
-        {
-            accessoryRemoved(
-                packet.toStruct<StatusData>(sizeof(Frame))
-            );
-        }
+        statusReceived(
+            frame->deviceId,
+            packet.toStruct<StatusData>(sizeof(Frame))
+        );
     }
 
     else if (
         frame->command == CMD_GUIDE_BTN &&
         frame->length == sizeof(GuideButtonData)
     ) {
-        if (!acknowledgePacket(frame))
+        if (!acknowledgePacket(*frame))
         {
             Log::error("Failed to acknowledge guide button packet");
 
@@ -112,6 +104,7 @@ bool GipDevice::handlePacket(const Bytes &packet)
         frame->length == sizeof(AudioEnableData)
     ) {
         audioEnabled(
+            frame->deviceId,
             packet.toStruct<AudioEnableData>(sizeof(Frame))
         );
     }
@@ -120,7 +113,7 @@ bool GipDevice::handlePacket(const Bytes &packet)
         frame->command == CMD_SERIAL_NUM &&
         frame->length == sizeof(SerialData)
     ) {
-        if (!acknowledgePacket(frame))
+        if (!acknowledgePacket(*frame))
         {
             Log::error("Failed to acknowledge serial number packet");
 
@@ -148,13 +141,14 @@ bool GipDevice::handlePacket(const Bytes &packet)
     return true;
 }
 
-bool GipDevice::setPowerMode(PowerMode mode, bool accessory)
+bool GipDevice::setPowerMode(uint8_t id, PowerMode mode)
 {
     Frame frame = {};
     const Bytes data = { mode };
 
     frame.command = CMD_POWER_MODE;
-    frame.type = accessory ? TYPE_ACCESSORY : TYPE_REQUEST;
+    frame.deviceId = id;
+    frame.type = TYPE_REQUEST;
     frame.sequence = getSequence();
     frame.length = data.size();
 
@@ -184,12 +178,13 @@ bool GipDevice::enableAccessoryDetection()
     return sendPacket(out);
 }
 
-bool GipDevice::enableAudio(AudioEnableData enable)
+bool GipDevice::enableAudio(uint8_t id, AudioEnableData enable)
 {
     Frame frame = {};
 
     frame.command = CMD_AUDIO_ENABLE;
-    frame.type = TYPE_ACCESSORY;
+    frame.deviceId = id;
+    frame.type = TYPE_REQUEST;
     frame.sequence = getSequence();
     frame.length = sizeof(enable);
 
@@ -253,14 +248,15 @@ bool GipDevice::requestSerialNumber()
     return sendPacket(out);
 }
 
-bool GipDevice::sendAudioSamples(const Bytes &samples)
+bool GipDevice::sendAudioSamples(uint8_t id, const Bytes &samples)
 {
     // The frame data is somehow related to the sample rate
     Frame frame = {};
     const Bytes data = { 0x8c, 0x00 };
 
     frame.command = CMD_AUDIO_SAMPLES;
-    frame.type = TYPE_ACCESSORY;
+    frame.deviceId = id;
+    frame.type = TYPE_REQUEST;
     frame.sequence = getSequence(true);
     frame.length = samples.size() / 12;
 
@@ -273,26 +269,24 @@ bool GipDevice::sendAudioSamples(const Bytes &samples)
     return sendPacket(out);
 }
 
-bool GipDevice::acknowledgePacket(const Frame *packet)
+bool GipDevice::acknowledgePacket(Frame packet)
 {
     Frame frame = {};
 
     frame.command = CMD_ACKNOWLEDGE;
     frame.type = TYPE_REQUEST;
-    frame.sequence = packet->sequence;
+    frame.sequence = packet.sequence;
     frame.length = sizeof(frame) + 5;
 
-    Frame innerFrame = {};
-
-    // Acknowledgement includes the received frame
-    innerFrame.type = packet->command;
-    innerFrame.sequence = TYPE_REQUEST;
-    innerFrame.length = packet->length;
+    packet.type = TYPE_REQUEST;
+    packet.sequence = packet.length;
+    packet.length = 0;
 
     Bytes out;
 
     out.append(frame);
-    out.append(innerFrame);
+    out.pad(1);
+    out.append(packet);
     out.pad(5);
 
     return sendPacket(out);
