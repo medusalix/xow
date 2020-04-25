@@ -63,6 +63,11 @@ public:
         return data.size();
     }
 
+    inline const uint8_t* raw() const
+    {
+        return data.data();
+    }
+
     inline uint8_t* raw()
     {
         return data.data();
@@ -146,7 +151,7 @@ public:
     {
         return Bytes(
             data.begin(),
-            data.end() + count
+            data.begin() + count
         );
     }
 

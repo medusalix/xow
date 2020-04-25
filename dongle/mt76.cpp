@@ -26,13 +26,6 @@ extern uint8_t _binary_firmware_bin_end[];
 
 bool Mt76::afterOpen()
 {
-    if (!loadFirmware())
-    {
-        Log::error("Failed to load firmware");
-
-        return false;
-    }
-
     if (!initChip())
     {
         Log::error("Failed to initialize chip");
@@ -164,10 +157,18 @@ void Mt76::handleClientPacket(const Bytes &packet)
         return;
     }
 
-    // Skip 2 byte padding
+    // Skip 2 byte padding and 4 bytes at the end
+    const uint8_t *begin = packet.raw() +
+        sizeof(RxWi) +
+        sizeof(WlanFrame) +
+        sizeof(QosFrame) +
+        sizeof(uint16_t);
+    const uint8_t *end = packet.raw() +
+        packet.size() -
+        sizeof(uint32_t);
     const Bytes data(
-        packet,
-        sizeof(RxWi) + sizeof(WlanFrame) + sizeof(QosFrame) + sizeof(uint16_t)
+        begin,
+        end
     );
 
     packetReceived(rxWi->wcid, data);
@@ -528,9 +529,9 @@ bool Mt76::initRegisters()
     controlWrite(MT_TX_ALC_CFG_2, 0x22160a00);
     controlWrite(MT_TX_ALC_CFG_3, 0x22160a76);
     controlWrite(MT_TX_ALC_CFG_0, 0x3f3f1818);
-    controlWrite(MT_TX_ALC_CFG_4, 0x80000606);
+    controlWrite(MT_TX_ALC_CFG_4, 0x0606);
     controlWrite(MT_PIFS_TX_CFG, 0x060fff);
-    controlWrite(MT_RX_FILTR_CFG, 0x015f9f);
+    controlWrite(MT_RX_FILTR_CFG, 0x017f17);
     controlWrite(MT_LEGACY_BASIC_RATE, 0x017f);
     controlWrite(MT_HT_BASIC_RATE, 0x8003);
     controlWrite(MT_PN_PAD_MODE, 0x02);
@@ -545,25 +546,21 @@ bool Mt76::initRegisters()
     controlWrite(MT_TX1_RF_GAIN_CORR, 0x0f3c3c3c);
     controlWrite(MT_PBF_CFG, 0x1efebcf5);
     controlWrite(MT_PAUSE_ENABLE_CONTROL1, 0x0a);
+    controlWrite(MT_RF_BYPASS_0, 0x7f000000);
+    controlWrite(MT_RF_SETTING_0, 0x1a800000);
     controlWrite(MT_XIFS_TIME_CFG, 0x33a40e0a);
     controlWrite(MT_FCE_L2_STUFF, 0x03ff0223);
     controlWrite(MT_TX_RTS_CFG, 0);
     controlWrite(MT_BEACON_TIME_CFG, 0x0640);
-    controlWrite(MT_EXT_CCA_CFG, 0x0000f0e4);
-    controlWrite(MT_CH_TIME_CFG, 0x0000015f);
+    controlWrite(MT_EXT_CCA_CFG, 0xf0e4);
+    controlWrite(MT_CH_TIME_CFG, 0x015f);
 
     // Calibrate internal crystal oscillator
     calibrateCrystal();
 
-    // Setup automatic gain control (AGC)
+    // Configure automatic gain control (AGC)
     controlWrite(MT_BBP(AGC, 8), 0x18365efa);
     controlWrite(MT_BBP(AGC, 9), 0x18365efa);
-
-    // Necessary for reliable WLAN associations
-    controlWrite(MT_RF_BYPASS_0, 0x7f000000);
-    controlWrite(MT_RF_SETTING_0, 0x1a800000);
-    controlWrite(MT_RF_BYPASS_0, 0);
-    controlWrite(MT_RF_SETTING_0, 0);
 
     macAddress = efuseRead(MT_EE_MAC_ADDR, 6);
 
@@ -644,12 +641,24 @@ void Mt76::calibrateCrystal()
     controlWrite(MT_CMB_CTRL, 0x0091a7ff);
 }
 
-bool Mt76::setupChannelCandidates()
+bool Mt76::initChannels()
 {
+    // Configure and enable/disable each individual channel
+    configureChannel(0x01, 0x00, 0x1f, true);
+    configureChannel(0x06, 0x00, 0x20, true);
+    configureChannel(0x0b, 0x00, 0x21, true);
+    configureChannel(0x24, 0x01, 0x2f, true);
+    configureChannel(0x28, 0x01, 0x2f, false);
+    configureChannel(0x2c, 0x01, 0x2f, true);
+    configureChannel(0x30, 0x01, 0x2f, false);
+    configureChannel(0x95, 0x02, 0x29, true);
+    configureChannel(0x99, 0x02, 0x29, false);
+    configureChannel(0x9d, 0x02, 0x28, true);
+    configureChannel(0xa1, 0x02, 0x28, false);
+    configureChannel(0xa5, 0x02, 0x28, false);
+
     // List of wireless channel candidates
-    // The left column maybe specifies the priority
-    // The right column contains the channels
-    Bytes candidates = {
+    const Bytes candidates = {
         0x01, 0xa5,
         0x0b, 0x01,
         0x06, 0x0b,
@@ -793,6 +802,13 @@ bool Mt76::loadFirmwarePart(
 
 bool Mt76::initChip()
 {
+    if (!loadFirmware())
+    {
+        Log::error("Failed to load firmware");
+
+        return false;
+    }
+
     // Select RX ring buffer 1
     // Turn radio on
     // Load BBP command register
@@ -813,7 +829,17 @@ bool Mt76::initChip()
         return false;
     }
 
+    if (!initGain(0, macAddress))
+    {
+        Log::error("Failed to init gain");
+
+        return false;
+    }
+
+    // Reset necessary for reliable WLAN associations
     controlWrite(MT_MAC_SYS_CTRL, 0);
+    controlWrite(MT_RF_BYPASS_0, 0);
+    controlWrite(MT_RF_SETTING_0, 0);
 
     if (
         !calibrate(MCU_CAL_TEMP_SENSOR, 0) ||
@@ -830,16 +856,9 @@ bool Mt76::initChip()
         MT_MAC_SYS_CTRL_ENABLE_TX | MT_MAC_SYS_CTRL_ENABLE_RX
     );
 
-    if (!switchChannel(MT_CHANNEL))
+    if (!initChannels())
     {
-        Log::error("Failed to set channel");
-
-        return false;
-    }
-
-    if (!initGain(0, macAddress))
-    {
-        Log::error("Failed to init gain");
+        Log::error("Failed to init channels");
 
         return false;
     }
@@ -847,13 +866,6 @@ bool Mt76::initChip()
     if (!writeBeacon())
     {
         Log::error("Failed to write beacon");
-
-        return false;
-    }
-
-    if (!setupChannelCandidates())
-    {
-        Log::error("Failed to setup channel candidates");
 
         return false;
     }
@@ -957,12 +969,12 @@ void Mt76::readBulkPackets(uint8_t endpoint)
 
 bool Mt76::selectFunction(McuFunction function, uint32_t value)
 {
-    Bytes data;
+    Bytes out;
 
-    data.append(function);
-    data.append(value);
+    out.append(function);
+    out.append(value);
 
-    if (!sendCommand(CMD_FUN_SET_OP, data))
+    if (!sendCommand(CMD_FUN_SET_OP, out))
     {
         Log::error("Failed to select function");
 
@@ -974,11 +986,11 @@ bool Mt76::selectFunction(McuFunction function, uint32_t value)
 
 bool Mt76::powerMode(McuPowerMode mode)
 {
-    Bytes data;
+    Bytes out;
 
-    data.append(mode);
+    out.append(mode);
 
-    if (!sendCommand(CMD_POWER_SAVING_OP, data))
+    if (!sendCommand(CMD_POWER_SAVING_OP, out))
     {
         Log::error("Failed to set power mode");
 
@@ -990,11 +1002,11 @@ bool Mt76::powerMode(McuPowerMode mode)
 
 bool Mt76::loadCr(McuCrMode mode)
 {
-    Bytes data;
+    Bytes out;
 
-    data.append(mode);
+    out.append(mode);
 
-    if (!sendCommand(CMD_LOAD_CR, data))
+    if (!sendCommand(CMD_LOAD_CR, out))
     {
         Log::error("Failed to load CR");
 
@@ -1008,12 +1020,12 @@ bool Mt76::burstWrite(uint32_t index, const Bytes &values)
 {
     index += MT_REG_OFFSET;
 
-    Bytes data;
+    Bytes out;
 
-    data.append(index);
-    data.append(values);
+    out.append(index);
+    out.append(values);
 
-    if (!sendCommand(CMD_BURST_WRITE, data))
+    if (!sendCommand(CMD_BURST_WRITE, out))
     {
         Log::error("Failed to burst write register");
 
@@ -1025,12 +1037,12 @@ bool Mt76::burstWrite(uint32_t index, const Bytes &values)
 
 bool Mt76::calibrate(McuCalibration calibration, uint32_t value)
 {
-    Bytes data;
+    Bytes out;
 
-    data.append(calibration);
-    data.append(value);
+    out.append(calibration);
+    out.append(value);
 
-    if (!sendCommand(CMD_CALIBRATION_OP, data))
+    if (!sendCommand(CMD_CALIBRATION_OP, out))
     {
         Log::error("Failed to calibrate");
 
@@ -1040,20 +1052,29 @@ bool Mt76::calibrate(McuCalibration calibration, uint32_t value)
     return true;
 }
 
-bool Mt76::switchChannel(uint8_t channel)
-{
-    SwitchChannelMessage message = {};
+bool Mt76::configureChannel(
+    uint8_t channel,
+    uint8_t group,
+    uint8_t txPower,
+    bool enabled
+) {
+    ChannelConfigData config = {};
 
-    // Set channel to switch to
     // Select TX and RX stream 1
-    message.channel = channel;
-    message.txRxSetting = 0x0101;
+    // Set transmit power (from 0x00 to 0x2f)
+    // Set channel group (unknown purpose)
+    // Enable or disable channel
+    config.channel = channel;
+    config.txRxSetting = 0x0101;
+    config.group = group;
+    config.txPower = txPower;
+    config.enabled = enabled;
 
-    Bytes data;
+    Bytes out;
 
-    data.append(message);
+    out.append(config);
 
-    if (!sendCommand(CMD_SWITCH_CHANNEL_OP, data))
+    if (!sendCommand(CMD_SWITCH_CHANNEL_OP, out))
     {
         Log::error("Failed to switch channel");
 
@@ -1065,12 +1086,12 @@ bool Mt76::switchChannel(uint8_t channel)
 
 bool Mt76::initGain(uint32_t index, const Bytes &values)
 {
-    Bytes data;
+    Bytes out;
 
-    data.append(index);
-    data.append(values);
+    out.append(index);
+    out.append(values);
 
-    if (!sendCommand(CMD_INIT_GAIN_OP, data))
+    if (!sendCommand(CMD_INIT_GAIN_OP, out))
     {
         Log::error("Failed to init gain");
 
@@ -1082,11 +1103,11 @@ bool Mt76::initGain(uint32_t index, const Bytes &values)
 
 bool Mt76::setLedMode(uint32_t index)
 {
-    Bytes data;
+    Bytes out;
 
-    data.append(index);
+    out.append(index);
 
-    if (!sendCommand(CMD_LED_MODE_OP, data))
+    if (!sendCommand(CMD_LED_MODE_OP, out))
     {
         Log::error("Failed to set LED mode");
 
