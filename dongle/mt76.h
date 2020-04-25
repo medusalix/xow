@@ -806,17 +806,6 @@
 // Register offset in memory
 #define MT_REG_OFFSET 0x410000
 
-/*
- * The MT76 supports the following channels:
- * 2.4 GHz: 1, 6, 11
- * 5 GHz:
- *   - 36, 40, 44, 48
- *   - 52, 56, 60, 64
- *   - 100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140
- *   - 149, 153, 157, 161, 165
- */
-#define MT_CHANNEL CHANNEL
-
 // Beacon defines
 #define MT_BCN_DEF_INTVAL 100
 
@@ -1169,7 +1158,16 @@ struct TxInfoPacket
     uint32_t infoType : 2;
 } __attribute__((packed));
 
-struct SwitchChannelMessage
+/*
+ * The MT76 supports the following channels:
+ * 2.4 GHz: 1, 6, 11
+ * 5 GHz:
+ *   - 36, 40, 44, 48
+ *   - 52, 56, 60, 64
+ *   - 100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140
+ *   - 149, 153, 157, 161, 165
+ */
+struct ChannelConfigData
 {
     uint8_t channel;
     uint8_t scan;
@@ -1179,6 +1177,10 @@ struct SwitchChannelMessage
     uint8_t externalChannel;
     uint8_t padding2;
     uint64_t padding3;
+    uint8_t group;
+    uint8_t txPower;
+    uint8_t enabled;
+    uint8_t padding4;
 } __attribute__((packed));
 
 union EfuseControl
@@ -1283,7 +1285,7 @@ private:
     /* Initialization routines */
     bool initRegisters();
     void calibrateCrystal();
-    bool setupChannelCandidates();
+    bool initChannels();
     bool loadFirmware();
     bool loadFirmwarePart(
         uint32_t offset,
@@ -1300,7 +1302,12 @@ private:
     bool loadCr(McuCrMode mode);
     bool burstWrite(uint32_t index, const Bytes &values);
     bool calibrate(McuCalibration calibration, uint32_t value);
-    bool switchChannel(uint8_t channel);
+    bool configureChannel(
+        uint8_t channel,
+        uint8_t group,
+        uint8_t txPower,
+        bool enabled
+    );
     bool initGain(uint32_t index, const Bytes &values);
     bool setLedMode(uint32_t index);
     Bytes efuseRead(uint8_t address, uint8_t index);
