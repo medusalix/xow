@@ -35,14 +35,14 @@ AudioStream::~AudioStream()
     stop();
 }
 
-void AudioStream::start(
+void AudioStream::createSource(
     uint32_t sampleRate,
-    size_t sampleCount,
+    uint8_t channels,
     std::string name
 ) {
     if (state != STATE_STOPPED)
     {
-        throw AudioException("Stream has already been started");
+        throw AudioException("Stream is currently running");
     }
 
     int error = 0;
@@ -50,7 +50,7 @@ void AudioStream::start(
 
     config.format = PA_SAMPLE_S16LE;
     config.rate = sampleRate;
-    config.channels = 2;
+    config.channels = channels;
 
     source = pa_simple_new(
         nullptr,
@@ -68,6 +68,24 @@ void AudioStream::start(
     {
         throw AudioException("Error creating source", error);
     }
+}
+
+void AudioStream::createSink(
+    uint32_t sampleRate,
+    uint8_t channels,
+    std::string name
+) {
+    if (state != STATE_STOPPED)
+    {
+        throw AudioException("Stream is currently running");
+    }
+
+    int error = 0;
+    pa_sample_spec config = {};
+
+    config.format = PA_SAMPLE_S16LE;
+    config.rate = sampleRate;
+    config.channels = channels;
 
     sink = pa_simple_new(
         nullptr,
@@ -84,6 +102,14 @@ void AudioStream::start(
     if (!sink)
     {
         throw AudioException("Error creating sink", error);
+    }
+}
+
+void AudioStream::start(size_t sampleCount)
+{
+    if (state != STATE_STOPPED)
+    {
+        throw AudioException("Stream has already been started");
     }
 
     state = STATE_RUNNING;
@@ -133,6 +159,7 @@ void AudioStream::read(size_t sampleCount)
     }
 
     pa_simple_free(source);
+    pa_simple_free(sink);
 
     state = STATE_STOPPED;
 }

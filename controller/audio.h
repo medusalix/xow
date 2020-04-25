@@ -39,11 +39,17 @@ public:
     AudioStream(SamplesRead samplesRead);
     virtual ~AudioStream();
 
-    void start(
+    void createSource(
         uint32_t sampleRate,
-        size_t sampleCount,
+        uint8_t channels,
         std::string name
     );
+    void createSink(
+        uint32_t sampleRate,
+        uint8_t channels,
+        std::string name
+    );
+    void start(size_t sampleCount);
     void write(const Bytes &samples);
     void stop();
 

@@ -33,8 +33,6 @@
 #define INPUT_TRIGGER_FUZZ 3
 #define INPUT_TRIGGER_FLAT 63
 
-#define AUDIO_SAMPLE_RATE 48000
-#define AUDIO_PACKET_COUNT 0x0600
 #define AUDIO_PACKET_DELAY std::chrono::milliseconds(7)
 
 Controller::Controller(
@@ -122,7 +120,7 @@ void Controller::guideButtonPressed(const GuideButtonData *button)
     inputDevice.report();
 }
 
-void Controller::audioEnabled(uint8_t id, const AudioEnableData *enable)
+void Controller::audioConfigured(uint8_t id, const AudioConfigData *config)
 {
     Log::info("Audio enabled");
 
@@ -134,11 +132,17 @@ void Controller::audioEnabled(uint8_t id, const AudioEnableData *enable)
     }
 
     // Don't wait for the second "audio enabled" event
-    audioStream.start(
-        AUDIO_SAMPLE_RATE,
-        AUDIO_PACKET_COUNT,
+    audioStream.createSource(
+        GIP_AUDIO_OUT_RATE,
+        GIP_AUDIO_OUT_CHANNELS,
         DEVICE_NAME
     );
+    audioStream.createSink(
+        GIP_AUDIO_IN_RATE,
+        GIP_AUDIO_IN_CHANNELS,
+        DEVICE_NAME
+    );
+    audioStream.start(GIP_AUDIO_OUT_COUNT);
 }
 
 void Controller::serialNumberReceived(const SerialData *serial)
@@ -269,17 +273,15 @@ void Controller::setupInput(uint16_t vendorId, uint16_t productId)
 
 void Controller::setupAudio(uint8_t id)
 {
-    AudioEnableData audioEnable = {};
+    AudioConfigData config = {};
 
-    // First value has to be 0x02
-    // Other values are still unknown
-    audioEnable.unknown1 = 0x02;
-    audioEnable.unknown2 = 0x09;
-    audioEnable.unknown3 = 0x10;
+    config.streamCount = 0x02;
+    config.sampleConfigIn = 0x09;
+    config.sampleConfigOut = 0x10;
 
-    if (!enableAudio(id, audioEnable))
+    if (!configureAudio(id, config))
     {
-        Log::error("Failed to enable audio");
+        Log::error("Failed to configure audio");
 
         return;
     }

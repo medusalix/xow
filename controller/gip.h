@@ -21,6 +21,15 @@
 #include <cstdint>
 #include <functional>
 
+#define GIP_AUDIO_IN_PKT_LEN 0xfe
+#define GIP_AUDIO_IN_RATE 24000
+#define GIP_AUDIO_IN_CHANNELS 1
+#define GIP_AUDIO_IN_COUNT 0x017c
+#define GIP_AUDIO_OUT_PKT_LEN 0x80
+#define GIP_AUDIO_OUT_RATE 48000
+#define GIP_AUDIO_OUT_CHANNELS 2
+#define GIP_AUDIO_OUT_COUNT 0x0600
+
 struct Frame;
 class Bytes;
 
@@ -122,11 +131,11 @@ protected:
         uint8_t unknown;
     } __attribute__((packed));
 
-    struct AudioEnableData
+    struct AudioConfigData
     {
-        uint8_t unknown1;
-        uint8_t unknown2;
-        uint8_t unknown3;
+        uint8_t streamCount;
+        uint8_t sampleConfigIn;
+        uint8_t sampleConfigOut;
     } __attribute__((packed));
 
     struct RumbleData
@@ -190,14 +199,14 @@ protected:
     virtual void deviceAnnounced(uint8_t id, const AnnounceData *announce) = 0;
     virtual void statusReceived(uint8_t id, const StatusData *status) = 0;
     virtual void guideButtonPressed(const GuideButtonData *button) = 0;
-    virtual void audioEnabled(uint8_t id, const AudioEnableData *enable) = 0;
+    virtual void audioConfigured(uint8_t id, const AudioConfigData *config) = 0;
     virtual void serialNumberReceived(const SerialData *serial) = 0;
     virtual void inputReceived(const InputData *input) = 0;
     virtual void audioSamplesReceived(const Bytes &samples) = 0;
 
     bool setPowerMode(uint8_t id, PowerMode mode);
     bool enableAccessoryDetection();
-    bool enableAudio(uint8_t id, AudioEnableData enable);
+    bool configureAudio(uint8_t id, AudioConfigData config);
     bool performRumble(RumbleData rumble);
     bool setLedMode(LedModeData mode);
     bool requestSerialNumber();

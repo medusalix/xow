@@ -38,7 +38,7 @@ private:
     void deviceAnnounced(uint8_t id, const AnnounceData *announce) override;
     void statusReceived(uint8_t id, const StatusData *status) override;
     void guideButtonPressed(const GuideButtonData *button) override;
-    void audioEnabled(uint8_t id, const AudioEnableData *enable) override;
+    void audioConfigured(uint8_t id, const AudioConfigData *config) override;
     void serialNumberReceived(const SerialData *serial) override;
     void inputReceived(const InputData *input) override;
     void audioSamplesReceived(const Bytes &samples) override;
