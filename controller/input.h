@@ -70,7 +70,7 @@ public:
     }
 
 private:
-    void readEvents();
+    void readEvents(int signalPipe);
     void emitCode(
         uint16_t type,
         uint16_t code,
