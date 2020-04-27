@@ -27,7 +27,9 @@
 
 #define INPUT_MAX_FF_EFFECTS 1
 
-InputDevice::InputDevice(FeedbackReceived feedbackReceived)
+InputDevice::InputDevice(
+    FeedbackReceived feedbackReceived
+) : feedbackReceived(feedbackReceived)
 {
     file = open("/dev/uinput", O_RDWR | O_NONBLOCK);
 
@@ -35,8 +37,6 @@ InputDevice::InputDevice(FeedbackReceived feedbackReceived)
     {
         throw InputException("Error opening device");
     }
-
-    this->feedbackReceived = feedbackReceived;
 }
 
 InputDevice::~InputDevice()
@@ -123,11 +123,6 @@ void InputDevice::create(
         throw InputException("Error creating device");
     }
 
-    readEvents();
-}
-
-void InputDevice::readEvents()
-{
     int pipes[2];
 
     if (pipe(pipes))
@@ -137,33 +132,35 @@ void InputDevice::readEvents()
 
     stopPipe = pipes[1];
 
+    std::thread(&InputDevice::readEvents, this, pipes[0]).detach();
+}
+
+void InputDevice::readEvents(int signalPipe)
+{
     pollfd polls[2] = {};
 
     // Wait for an input event or a stop signal
     polls[0].fd = file;
-    polls[1].fd = pipes[0];
+    polls[1].fd = signalPipe;
     polls[0].events = POLLIN;
     polls[1].events = POLLIN;
 
-    std::thread([this, polls]() mutable
+    while (poll(polls, 2, -1) > 0)
     {
-        while (poll(polls, 2, -1) > 0)
+        // Event loop should stop
+        if (polls[1].revents & POLLIN)
         {
-            // Event loop should stop
-            if (polls[1].revents & POLLIN)
-            {
-                break;
-            }
-
-            input_event event = {};
-            ssize_t count = read(file, &event, sizeof(event));
-
-            if (count == sizeof(event))
-            {
-                handleEvent(event);
-            }
+            break;
         }
-    }).detach();
+
+        input_event event = {};
+        ssize_t count = read(file, &event, sizeof(event));
+
+        if (count == sizeof(event))
+        {
+            handleEvent(event);
+        }
+    }
 }
 
 void InputDevice::emitCode(
@@ -274,5 +271,6 @@ void InputDevice::handleEvent(input_event event)
     }
 }
 
-InputException::InputException(std::string message) :
-    std::runtime_error(message + ": " + strerror(errno)) {}
+InputException::InputException(
+    std::string message
+) : std::runtime_error(message + ": " + strerror(errno)) {}
