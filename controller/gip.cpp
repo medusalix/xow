@@ -27,12 +27,14 @@ enum FrameCommand
     CMD_STATUS = 0x03,
     CMD_AUTHENTICATE = 0x04,
     CMD_POWER_MODE = 0x05,
-    CMD_READ_EEPROM = 0x06,
+    CMD_CUSTOM = 0x06,
     CMD_GUIDE_BTN = 0x07,
+    CMD_AUDIO_CONFIG = 0x08,
     CMD_RUMBLE = 0x09,
     CMD_LED_MODE = 0x0a,
     CMD_SERIAL_NUM = 0x1e,
     CMD_INPUT = 0x20,
+    CMD_AUDIO_SAMPLES = 0x60,
 };
 
 // Different frame types
@@ -42,14 +44,15 @@ enum FrameCommand
 enum FrameType
 {
     TYPE_COMMAND = 0x00,
-    TYPE_REQUEST = 0x20,
-    TYPE_REQUEST_ACK = 0x30,
+    TYPE_ACK = 0x01,
+    TYPE_REQUEST = 0x02,
 };
 
 struct Frame
 {
     uint8_t command;
-    uint8_t type;
+    uint8_t deviceId : 4;
+    uint8_t type : 4;
     uint8_t sequence;
     uint8_t length;
 } __attribute__((packed));
@@ -60,11 +63,19 @@ bool GipDevice::handlePacket(const Bytes &packet)
 {
     const Frame *frame = packet.toStruct<Frame>();
 
+    if (frame->type & TYPE_ACK && !acknowledgePacket(*frame))
+    {
+        Log::error("Failed to acknowledge packet");
+
+        return false;
+    }
+
     if (
         frame->command == CMD_ANNOUNCE &&
         frame->length == sizeof(AnnounceData)
     ) {
         deviceAnnounced(
+            frame->deviceId,
             packet.toStruct<AnnounceData>(sizeof(Frame))
         );
     }
@@ -74,6 +85,7 @@ bool GipDevice::handlePacket(const Bytes &packet)
         frame->length == sizeof(StatusData)
     ) {
         statusReceived(
+            frame->deviceId,
             packet.toStruct<StatusData>(sizeof(Frame))
         );
     }
@@ -82,13 +94,6 @@ bool GipDevice::handlePacket(const Bytes &packet)
         frame->command == CMD_GUIDE_BTN &&
         frame->length == sizeof(GuideButtonData)
     ) {
-        if (!acknowledgePacket(frame))
-        {
-            Log::error("Failed to acknowledge guide button packet");
-
-            return false;
-        }
-
         guideButtonPressed(
             packet.toStruct<GuideButtonData>(sizeof(Frame))
         );
@@ -98,13 +103,6 @@ bool GipDevice::handlePacket(const Bytes &packet)
         frame->command == CMD_SERIAL_NUM &&
         frame->length == sizeof(SerialData)
     ) {
-        if (!acknowledgePacket(frame))
-        {
-            Log::error("Failed to acknowledge serial number packet");
-
-            return false;
-        }
-
         serialNumberReceived(
             packet.toStruct<SerialData>(sizeof(Frame))
         );
@@ -126,13 +124,15 @@ bool GipDevice::handlePacket(const Bytes &packet)
     return true;
 }
 
-bool GipDevice::setPowerMode(PowerMode mode)
+bool GipDevice::setPowerMode(uint8_t id, PowerMode mode)
 {
     Frame frame = {};
     const Bytes data = { mode };
 
     frame.command = CMD_POWER_MODE;
+    frame.deviceId = id;
     frame.type = TYPE_REQUEST;
+    frame.sequence = getSequence();
     frame.length = data.size();
 
     Bytes out;
@@ -143,34 +143,36 @@ bool GipDevice::setPowerMode(PowerMode mode)
     return sendPacket(out);
 }
 
-bool GipDevice::performRumble(RumbleData data)
+bool GipDevice::performRumble(RumbleData rumble)
 {
     Frame frame = {};
 
     frame.command = CMD_RUMBLE;
     frame.type = TYPE_COMMAND;
-    frame.length = sizeof(data);
+    frame.sequence = getSequence();
+    frame.length = sizeof(rumble);
 
     Bytes out;
 
     out.append(frame);
-    out.append(data);
+    out.append(rumble);
 
     return sendPacket(out);
 }
 
-bool GipDevice::setLedMode(LedModeData data)
+bool GipDevice::setLedMode(LedModeData mode)
 {
     Frame frame = {};
 
     frame.command = CMD_LED_MODE;
     frame.type = TYPE_REQUEST;
-    frame.length = sizeof(data);
+    frame.sequence = getSequence();
+    frame.length = sizeof(mode);
 
     Bytes out;
 
     out.append(frame);
-    out.append(data);
+    out.append(mode);
 
     return sendPacket(out);
 }
@@ -181,7 +183,8 @@ bool GipDevice::requestSerialNumber()
     const Bytes data = { 0x04 };
 
     frame.command = CMD_SERIAL_NUM;
-    frame.type = TYPE_REQUEST_ACK;
+    frame.type = TYPE_REQUEST | TYPE_ACK;
+    frame.sequence = getSequence();
     frame.length = data.size();
 
     Bytes out;
@@ -192,27 +195,47 @@ bool GipDevice::requestSerialNumber()
     return sendPacket(out);
 }
 
-bool GipDevice::acknowledgePacket(const Frame *packet)
+bool GipDevice::acknowledgePacket(Frame packet)
 {
     Frame frame = {};
 
     frame.command = CMD_ACKNOWLEDGE;
+    frame.deviceId = packet.deviceId;
     frame.type = TYPE_REQUEST;
-    frame.sequence = packet->sequence;
+    frame.sequence = packet.sequence;
     frame.length = sizeof(frame) + 5;
 
-    Frame innerFrame = {};
-
-    // Acknowledgement includes the received frame
-    innerFrame.type = packet->command;
-    innerFrame.sequence = TYPE_REQUEST;
-    innerFrame.length = packet->length;
+    packet.type = TYPE_REQUEST;
+    packet.sequence = packet.length;
+    packet.length = 0;
 
     Bytes out;
 
     out.append(frame);
-    out.append(innerFrame);
+    out.pad(1);
+    out.append(packet);
     out.pad(5);
 
     return sendPacket(out);
+}
+
+uint8_t GipDevice::getSequence(bool accessory)
+{
+    if (accessory)
+    {
+        // Zero is an invalid sequence number
+        if (accessorySequence == 0x00)
+        {
+            accessorySequence = 0x01;
+        }
+
+        return accessorySequence++;
+    }
+
+    if (sequence == 0x00)
+    {
+        sequence = 0x01;
+    }
+
+    return sequence++;
 }
