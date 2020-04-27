@@ -22,9 +22,20 @@
 #include <cmath>
 #include <linux/input.h>
 
-Controller::Controller(SendPacket sendPacket) :
-    GipDevice(sendPacket), inputDevice(std::bind(
-        &Controller::feedbackReceived,
+// Accessories use IDs greater than zero
+#define DEVICE_ID_CONTROLLER 0
+#define DEVICE_NAME "Xbox One Wireless Controller"
+
+#define INPUT_STICK_FUZZ 255
+#define INPUT_STICK_FLAT 4095
+#define INPUT_TRIGGER_FUZZ 3
+#define INPUT_TRIGGER_FLAT 63
+
+Controller::Controller(
+    SendPacket sendPacket
+) : GipDevice(sendPacket),
+    inputDevice(std::bind(
+        &Controller::inputFeedbackReceived,
         this,
         std::placeholders::_1,
         std::placeholders::_2
@@ -32,12 +43,12 @@ Controller::Controller(SendPacket sendPacket) :
 
 bool Controller::powerOff()
 {
-    return setPowerMode(POWER_OFF);
+    return setPowerMode(DEVICE_ID_CONTROLLER, POWER_OFF);
 }
 
-void Controller::deviceAnnounced(const AnnounceData *announce)
+void Controller::deviceAnnounced(uint8_t id, const AnnounceData *announce)
 {
-    Log::info("Product ID: %04x", announce->productId);
+    Log::info("Device announced, product id: %04x", announce->productId);
     Log::debug(
         "Firmware version: %d.%d.%d.%d",
         announce->firmwareVersion.major,
@@ -53,38 +64,10 @@ void Controller::deviceAnnounced(const AnnounceData *announce)
         announce->hardwareVersion.revision
     );
 
-    LedModeData ledMode = {};
-
-    // Dim the LED a little bit, like the original driver
-    // Brightness ranges from 0x00 to 0x20
-    ledMode.mode = LED_ON;
-    ledMode.brightness = 0x14;
-
-    if (!setPowerMode(POWER_ON))
-    {
-        Log::error("Failed to set initial power mode");
-
-        return;
-    }
-
-    if (!setLedMode(ledMode))
-    {
-        Log::error("Failed to set initial LED mode");
-
-        return;
-    }
-
-    if (!requestSerialNumber())
-    {
-        Log::error("Failed to request serial number");
-
-        return;
-    }
-
-    setupInput(announce->vendorId, announce->productId);
+    initInput(announce->vendorId, announce->productId);
 }
 
-void Controller::statusReceived(const StatusData *status)
+void Controller::statusReceived(uint8_t id, const StatusData *status)
 {
     Log::debug(
         "Battery type: %d, level: %d",
@@ -138,23 +121,51 @@ void Controller::inputReceived(const InputData *input)
     inputDevice.report();
 }
 
-void Controller::setupInput(uint16_t vendorId, uint16_t productId)
+void Controller::initInput(uint16_t vendorId, uint16_t productId)
 {
+    LedModeData ledMode = {};
+
+    // Dim the LED a little bit, like the original driver
+    // Brightness ranges from 0x00 to 0x20
+    ledMode.mode = LED_ON;
+    ledMode.brightness = 0x14;
+
+    if (!setPowerMode(DEVICE_ID_CONTROLLER, POWER_ON))
+    {
+        Log::error("Failed to set initial power mode");
+
+        return;
+    }
+
+    if (!setLedMode(ledMode))
+    {
+        Log::error("Failed to set initial LED mode");
+
+        return;
+    }
+
+    if (!requestSerialNumber())
+    {
+        Log::error("Failed to request serial number");
+
+        return;
+    }
+
     InputDevice::AxisConfig stickConfig = {};
 
     // 16 bits (signed) for the sticks
     stickConfig.minimum = -32768;
     stickConfig.maximum = 32767;
-    stickConfig.fuzz = 255;
-    stickConfig.flat = 4095;
+    stickConfig.fuzz = INPUT_STICK_FUZZ;
+    stickConfig.flat = INPUT_STICK_FLAT;
 
     InputDevice::AxisConfig triggerConfig = {};
 
     // 10 bits (unsigned) for the triggers
     triggerConfig.minimum = 0;
     triggerConfig.maximum = 1023;
-    triggerConfig.fuzz = 3;
-    triggerConfig.flat = 63;
+    triggerConfig.fuzz = INPUT_TRIGGER_FUZZ;
+    triggerConfig.flat = INPUT_TRIGGER_FLAT;
 
     InputDevice::AxisConfig dpadConfig = {};
 
@@ -182,14 +193,10 @@ void Controller::setupInput(uint16_t vendorId, uint16_t productId)
     inputDevice.addAxis(ABS_HAT0X, dpadConfig);
     inputDevice.addAxis(ABS_HAT0Y, dpadConfig);
     inputDevice.addFeedback(FF_RUMBLE);
-    inputDevice.create(
-        vendorId,
-        productId,
-        "Xbox One Wireless Controller"
-    );
+    inputDevice.create(vendorId, productId, DEVICE_NAME);
 }
 
-void Controller::feedbackReceived(ff_effect effect, uint16_t gain)
+void Controller::inputFeedbackReceived(ff_effect effect, uint16_t gain)
 {
     if (effect.type != FF_RUMBLE)
     {
@@ -201,7 +208,7 @@ void Controller::feedbackReceived(ff_effect effect, uint16_t gain)
         return;
     }
 
-    // Map Linux' magnitudes to rumble power
+    // Map effect's magnitudes to rumble power
     uint8_t weak = static_cast<uint32_t>(
         effect.u.rumble.weak_magnitude
     ) * gain / 0xffffff;
@@ -234,7 +241,7 @@ void Controller::feedbackReceived(ff_effect effect, uint16_t gain)
         float right = cos(2 * M_PI * angle);
         uint8_t maxPower = strong > weak ? strong : weak;
 
-        // Limit values to the left and right areas
+        // Limit values to left and right areas
         left = left > 0 ? left : 0;
         right = right < 0 ? -right : 0;
 

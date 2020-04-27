@@ -180,19 +180,22 @@ protected:
 
     GipDevice(SendPacket sendPacket);
 
-    virtual void deviceAnnounced(const AnnounceData *announce) = 0;
-    virtual void statusReceived(const StatusData *status) = 0;
+    virtual void deviceAnnounced(uint8_t id, const AnnounceData *announce) = 0;
+    virtual void statusReceived(uint8_t id, const StatusData *status) = 0;
     virtual void guideButtonPressed(const GuideButtonData *button) = 0;
     virtual void serialNumberReceived(const SerialData *serial) = 0;
     virtual void inputReceived(const InputData *input) = 0;
 
-    bool setPowerMode(PowerMode mode);
-    bool performRumble(RumbleData data);
-    bool setLedMode(LedModeData data);
+    bool setPowerMode(uint8_t id, PowerMode mode);
+    bool performRumble(RumbleData rumble);
+    bool setLedMode(LedModeData mode);
     bool requestSerialNumber();
 
 private:
-    bool acknowledgePacket(const Frame *packet);
+    bool acknowledgePacket(Frame packet);
+    uint8_t getSequence(bool accessory = false);
 
+    uint8_t sequence = 0x01;
+    uint8_t accessorySequence = 0x01;
     SendPacket sendPacket;
 };
