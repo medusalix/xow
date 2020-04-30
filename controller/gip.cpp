@@ -214,7 +214,7 @@ bool GipDevice::acknowledgePacket(Frame packet)
     out.append(frame);
     out.pad(1);
     out.append(packet);
-    out.pad(5);
+    out.pad(4);
 
     return sendPacket(out);
 }
