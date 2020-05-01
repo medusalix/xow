@@ -29,8 +29,7 @@ class Controller : public GipDevice
 {
 public:
     Controller(SendPacket sendPacket);
-
-    bool powerOff();
+    ~Controller();
 
 private:
     /* GIP events */

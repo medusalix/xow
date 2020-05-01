@@ -20,10 +20,8 @@
 #include "../utils/log.h"
 
 #include <cstring>
-#include <thread>
 #include <unistd.h>
 #include <fcntl.h>
-#include <poll.h>
 
 #define INPUT_MAX_FF_EFFECTS 1
 
@@ -41,21 +39,18 @@ InputDevice::InputDevice(
 
 InputDevice::~InputDevice()
 {
+    // Wait for event thread to shut down
+    if (eventThread.joinable())
+    {
+        eventReader.interrupt();
+        eventThread.join();
+    }
+
     if (
         ioctl(file, UI_DEV_DESTROY) < 0 ||
         close(file) < 0
     ) {
         Log::error("Error closing device: %s", strerror(errno));
-    }
-
-    bool stop = true;
-
-    // Stop event loop
-    if (
-        write(stopPipe, &stop, sizeof(stop)) != sizeof(stop) ||
-        close(stopPipe) < 0
-    ) {
-        Log::error("Error stopping event loop: %s", strerror(errno));
     }
 }
 
@@ -123,43 +118,17 @@ void InputDevice::create(
         throw InputException("Error creating device");
     }
 
-    int pipes[2];
-
-    if (pipe(pipes))
-    {
-        throw InputException("Error creating stop pipe");
-    }
-
-    stopPipe = pipes[1];
-
-    std::thread(&InputDevice::readEvents, this, pipes[0]).detach();
+    eventReader.prepare(file);
+    eventThread = std::thread(&InputDevice::readEvents, this);
 }
 
-void InputDevice::readEvents(int signalPipe)
+void InputDevice::readEvents()
 {
-    pollfd polls[2] = {};
+    input_event event = {};
 
-    // Wait for an input event or a stop signal
-    polls[0].fd = file;
-    polls[1].fd = signalPipe;
-    polls[0].events = POLLIN;
-    polls[1].events = POLLIN;
-
-    while (poll(polls, 2, -1) > 0)
+    while (eventReader.read(&event, sizeof(event)))
     {
-        // Event loop should stop
-        if (polls[1].revents & POLLIN)
-        {
-            break;
-        }
-
-        input_event event = {};
-        ssize_t count = read(file, &event, sizeof(event));
-
-        if (count == sizeof(event))
-        {
-            handleEvent(event);
-        }
+        handleEvent(event);
     }
 }
 
