@@ -19,253 +19,78 @@
 #include "mt76.h"
 #include "../utils/log.h"
 
-#include <thread>
-
 extern uint8_t _binary_firmware_bin_start[];
 extern uint8_t _binary_firmware_bin_end[];
 
-bool Mt76::afterOpen()
+Mt76::Mt76(
+    std::unique_ptr<UsbDevice> usbDevice
+) : usbDevice(std::move(usbDevice)), connectedWcids(0)
 {
-    if (!initChip())
+    if (!loadFirmware())
     {
-        Log::error("Failed to initialize chip");
-
-        return false;
+        throw Mt76Exception("Failed to load firmware");
     }
 
-    std::thread(&Mt76::readBulkPackets, this, MT_EP_READ).detach();
-    std::thread(&Mt76::readBulkPackets, this, MT_EP_READ_PACKET).detach();
+    // Select RX ring buffer 1
+    // Turn radio on
+    // Load BBP command register
+    if (
+        !selectFunction(Q_SELECT, 1) ||
+        !powerMode(RADIO_ON) ||
+        !loadCr(MT_RF_BBP_CR)
+    ) {
+        throw Mt76Exception("Failed to init radio");
+    }
 
-    return true;
+    if (!initRegisters())
+    {
+        throw Mt76Exception("Failed to init registers");
+    }
+
+    if (!initGain(0, macAddress))
+    {
+        throw Mt76Exception("Failed to init gain");
+    }
+
+    // Reset necessary for reliable WLAN associations
+    controlWrite(MT_MAC_SYS_CTRL, 0);
+    controlWrite(MT_RF_BYPASS_0, 0);
+    controlWrite(MT_RF_SETTING_0, 0);
+
+    if (
+        !calibrate(MCU_CAL_TEMP_SENSOR, 0) ||
+        !calibrate(MCU_CAL_RXDCOC, 1) ||
+        !calibrate(MCU_CAL_RC, 0)
+    ) {
+        throw Mt76Exception("Failed to calibrate chip");
+    }
+
+    controlWrite(
+        MT_MAC_SYS_CTRL,
+        MT_MAC_SYS_CTRL_ENABLE_TX | MT_MAC_SYS_CTRL_ENABLE_RX
+    );
+
+    if (!initChannels())
+    {
+        throw Mt76Exception("Failed to init channels");
+    }
+
+    if (!writeBeacon())
+    {
+        throw Mt76Exception("Failed to write beacon");
+    }
 }
 
-bool Mt76::beforeClose()
+Mt76::~Mt76()
 {
     if (!setLedMode(MT_LED_OFF))
     {
         Log::error("Failed to turn off LED");
-
-        return false;
     }
 
-    return true;
-}
-
-void Mt76::handleWlanPacket(const Bytes &packet)
-{
-    const RxWi *rxWi = packet.toStruct<RxWi>();
-    const WlanFrame *wlanFrame = packet.toStruct<WlanFrame>(sizeof(RxWi));
-
-    const Bytes source(
-        wlanFrame->source,
-        wlanFrame->source + macAddress.size()
-    );
-    const Bytes destination(
-        wlanFrame->destination,
-        wlanFrame->destination + macAddress.size()
-    );
-
-    // Packet has wrong destination address
-    if (destination != macAddress)
+    if (!powerMode(RADIO_OFF))
     {
-        return;
-    }
-
-    uint8_t type = wlanFrame->frameControl.type;
-    uint8_t subtype = wlanFrame->frameControl.subtype;
-
-    if (type != MT_WLAN_MGMT)
-    {
-        return;
-    }
-
-    if (subtype == MT_WLAN_ASSOC_REQ)
-    {
-        Log::debug(
-            "Client associating: %s",
-            Log::formatBytes(source).c_str()
-        );
-
-        uint8_t wcid = associateClient(source);
-
-        if (!wcid)
-        {
-            Log::error("Failed to associate client");
-
-            return;
-        }
-
-        clientConnected(wcid, source);
-    }
-
-    // Only kept for compatibility with 1537 controllers
-    // They associate, disassociate and associate again during pairing
-    // Disassociations happen without triggering EVT_CLIENT_LOST
-    else if (subtype == MT_WLAN_DISASSOC)
-    {
-        Log::debug(
-            "Client disassociating: %s",
-            Log::formatBytes(source).c_str()
-        );
-
-        if (!removeClient(rxWi->wcid))
-        {
-            Log::error("Failed to remove client");
-
-            return;
-        }
-
-        clientDisconnected(rxWi->wcid);
-    }
-
-    // Reserved frames are used for different purposes
-    // Most of them are yet to be discovered
-    else if (subtype == MT_WLAN_RESERVED)
-    {
-        const ReservedFrame *frame = packet.toStruct<ReservedFrame>(
-            sizeof(RxWi) + sizeof(WlanFrame)
-        );
-
-        // Type 0x01 is for pairing requests
-        if (frame->type != 0x01)
-        {
-            return;
-        }
-
-        Log::debug(
-            "Client pairing: %s",
-            Log::formatBytes(source).c_str()
-        );
-
-        if (!pairClient(source))
-        {
-            Log::error("Failed to pair client");
-        }
-    }
-}
-
-void Mt76::handleClientPacket(const Bytes &packet)
-{
-    const RxWi *rxWi = packet.toStruct<RxWi>();
-    const WlanFrame *wlanFrame = packet.toStruct<WlanFrame>(sizeof(RxWi));
-
-    uint8_t type = wlanFrame->frameControl.type;
-    uint8_t subtype = wlanFrame->frameControl.subtype;
-
-    if (type != MT_WLAN_DATA || subtype != MT_WLAN_QOS_DATA)
-    {
-        return;
-    }
-
-    // Skip 2 byte padding and 4 bytes at the end
-    const uint8_t *begin = packet.raw() +
-        sizeof(RxWi) +
-        sizeof(WlanFrame) +
-        sizeof(QosFrame) +
-        sizeof(uint16_t);
-    const uint8_t *end = packet.raw() +
-        packet.size() -
-        sizeof(uint32_t);
-    const Bytes data(
-        begin,
-        end
-    );
-
-    packetReceived(rxWi->wcid, data);
-}
-
-void Mt76::handleClientLost(const Bytes &packet)
-{
-    // Invalid packet
-    if (packet.size() < 1)
-    {
-        return;
-    }
-
-    uint8_t wcid = packet[0];
-
-    // Invalid WCID or not connected
-    if (!wcid || !(connectedWcids & BIT(wcid - 1)))
-    {
-        return;
-    }
-
-    Log::debug("Client lost: %d", wcid);
-
-    if (!removeClient(wcid))
-    {
-        Log::error("Failed to remove client");
-
-        return;
-    }
-
-    clientDisconnected(wcid);
-}
-
-void Mt76::handleButtonPress()
-{
-    // Start sending the 'pairing' beacon
-    if (!writeBeacon(true))
-    {
-        Log::error("Failed to write pairing beacon");
-
-        return;
-    }
-
-    if (!setLedMode(MT_LED_BLINK))
-    {
-        Log::error("Failed to set LED mode");
-
-        return;
-    }
-
-    Log::info("Pairing initiated");
-}
-
-void Mt76::handleBulkPacket(const Bytes &packet)
-{
-    if (packet.size() < sizeof(RxInfoGeneric))
-    {
-        Log::error("Invalid packet received");
-
-        return;
-    }
-
-    std::lock_guard<std::mutex> lock(handlePacketMutex);
-
-    const RxInfoGeneric *rxInfo = packet.toStruct<RxInfoGeneric>();
-
-    if (rxInfo->port == CPU_RX_PORT)
-    {
-        const RxInfoCommand *info = packet.toStruct<RxInfoCommand>();
-        const Bytes data(packet, sizeof(RxInfoCommand));
-
-        if (info->eventType == EVT_PACKET_RX)
-        {
-            handleClientPacket(data);
-        }
-
-        else if (info->eventType == EVT_CLIENT_LOST)
-        {
-            handleClientLost(data);
-        }
-
-        else if (info->eventType == EVT_BUTTON_PRESS)
-        {
-            handleButtonPress();
-        }
-    }
-
-    else if (rxInfo->port == WLAN_PORT)
-    {
-        const RxInfoPacket *info = packet.toStruct<RxInfoPacket>();
-
-        if (info->is80211)
-        {
-            const Bytes data(packet, sizeof(RxInfoPacket));
-
-            handleWlanPacket(data);
-        }
+        Log::error("Failed to turn off radio");
     }
 }
 
@@ -445,6 +270,67 @@ bool Mt76::pairClient(Bytes address)
     return true;
 }
 
+bool Mt76::sendClientPacket(
+    uint8_t wcid,
+    Bytes address,
+    const Bytes &packet
+) {
+    // Skip unconnected WCIDs
+    if (!(connectedWcids & BIT(wcid - 1)))
+    {
+        return true;
+    }
+
+    TxWi txWi = {};
+
+    // OFDM transmission method
+    // Wait for acknowledgement
+    txWi.phyType = MT_PHY_TYPE_OFDM;
+    txWi.ack = 1;
+    txWi.mpduByteCount = sizeof(WlanFrame) + sizeof(QosFrame) + packet.size();
+
+    WlanFrame wlanFrame = {};
+
+    // Frame is sent from AP (DS)
+    // Duration is the time required to transmit (μs)
+    wlanFrame.frameControl.type = MT_WLAN_DATA;
+    wlanFrame.frameControl.subtype = MT_WLAN_QOS_DATA;
+    wlanFrame.frameControl.fromDs = 1;
+    wlanFrame.duration = 144;
+
+    address.copy(wlanFrame.destination);
+    macAddress.copy(wlanFrame.source);
+    macAddress.copy(wlanFrame.bssId);
+
+    QosFrame qosFrame = {};
+
+    // Frames and data must be 32-bit aligned
+    uint32_t length = sizeof(txWi) + sizeof(wlanFrame) + sizeof(qosFrame);
+    uint32_t wcidData = __builtin_bswap32(wcid - 1);
+    uint8_t framePadding = Bytes::padding<uint32_t>(length);
+    uint8_t dataPadding = Bytes::padding<uint32_t>(packet.size());
+
+    Bytes out;
+
+    out.append(wcidData);
+    out.pad(sizeof(uint32_t));
+    out.append(txWi);
+    out.append(wlanFrame);
+    out.append(qosFrame);
+    out.pad(framePadding);
+    out.append(packet);
+    out.pad(dataPadding);
+
+    if (!sendCommand(CMD_PACKET_TX, out))
+    {
+        Log::error("Failed to send controller packet");
+
+        return false;
+    }
+
+    return true;
+}
+
 bool Mt76::sendWlanPacket(const Bytes &data)
 {
     // Values must be 32-bit aligned
@@ -471,7 +357,7 @@ bool Mt76::sendWlanPacket(const Bytes &data)
     out.pad(padding);
     out.pad(sizeof(uint32_t));
 
-    if (!bulkWrite(MT_EP_WRITE, out))
+    if (!usbDevice->bulkWrite(MT_EP_WRITE, out))
     {
         Log::error("Failed to write WLAN packet");
 
@@ -785,7 +671,7 @@ bool Mt76::loadFirmwarePart(
         controlWrite(MT_FCE_DMA_ADDR, address, MT_VEND_WRITE_CFG);
         controlWrite(MT_FCE_DMA_LEN, length << 16, MT_VEND_WRITE_CFG);
 
-        if (!bulkWrite(MT_EP_WRITE, out))
+        if (!usbDevice->bulkWrite(MT_EP_WRITE, out))
         {
             Log::error("Failed to write firmware chunk");
 
@@ -795,79 +681,6 @@ bool Mt76::loadFirmwarePart(
         uint32_t complete = (length << 16) | MT_DMA_COMPLETE;
 
         while (controlRead(MT_FCE_DMA_LEN, MT_VEND_READ_CFG) != complete);
-    }
-
-    return true;
-}
-
-bool Mt76::initChip()
-{
-    if (!loadFirmware())
-    {
-        Log::error("Failed to load firmware");
-
-        return false;
-    }
-
-    // Select RX ring buffer 1
-    // Turn radio on
-    // Load BBP command register
-    if (
-        !selectFunction(Q_SELECT, 1) ||
-        !powerMode(RADIO_ON) ||
-        !loadCr(MT_RF_BBP_CR)
-    ) {
-        Log::error("Failed to init radio");
-
-        return false;
-    }
-
-    if (!initRegisters())
-    {
-        Log::error("Failed to init registers");
-
-        return false;
-    }
-
-    if (!initGain(0, macAddress))
-    {
-        Log::error("Failed to init gain");
-
-        return false;
-    }
-
-    // Reset necessary for reliable WLAN associations
-    controlWrite(MT_MAC_SYS_CTRL, 0);
-    controlWrite(MT_RF_BYPASS_0, 0);
-    controlWrite(MT_RF_SETTING_0, 0);
-
-    if (
-        !calibrate(MCU_CAL_TEMP_SENSOR, 0) ||
-        !calibrate(MCU_CAL_RXDCOC, 1) ||
-        !calibrate(MCU_CAL_RC, 0)
-    ) {
-        Log::error("Failed to calibrate chip");
-
-        return false;
-    }
-
-    controlWrite(
-        MT_MAC_SYS_CTRL,
-        MT_MAC_SYS_CTRL_ENABLE_TX | MT_MAC_SYS_CTRL_ENABLE_RX
-    );
-
-    if (!initChannels())
-    {
-        Log::error("Failed to init channels");
-
-        return false;
-    }
-
-    if (!writeBeacon())
-    {
-        Log::error("Failed to write beacon");
-
-        return false;
     }
 
     return true;
@@ -950,21 +763,6 @@ bool Mt76::writeBeacon(bool pairing)
     }
 
     return true;
-}
-
-void Mt76::readBulkPackets(uint8_t endpoint)
-{
-    FixedBytes<USB_BUFFER_SIZE> buffer;
-    int transferred = 0;
-
-    do
-    {
-        transferred = bulkRead(endpoint, buffer);
-
-        Bytes packet = buffer.toBytes(transferred);
-
-        handleBulkPacket(packet);
-    } while (transferred);
 }
 
 bool Mt76::selectFunction(McuFunction function, uint32_t value)
@@ -1139,7 +937,7 @@ bool Mt76::sendCommand(McuCommand command, const Bytes &data)
     out.pad(padding);
     out.pad(sizeof(uint32_t));
 
-    if (!bulkWrite(MT_EP_WRITE, out))
+    if (!usbDevice->bulkWrite(MT_EP_WRITE, out))
     {
         Log::error("Failed to write command");
 
@@ -1184,14 +982,14 @@ Bytes Mt76::efuseRead(uint8_t address, uint8_t length)
 uint32_t Mt76::controlRead(uint16_t address, VendorRequest request)
 {
     uint32_t response = 0;
-    ControlPacket packet = {};
+    UsbDevice::ControlPacket packet = {};
 
     packet.request = request;
     packet.index = address;
     packet.data = reinterpret_cast<uint8_t*>(&response);
     packet.length = sizeof(response);
 
-    controlTransfer(packet, false);
+    usbDevice->controlTransfer(packet, false);
 
     return response;
 }
@@ -1201,7 +999,7 @@ void Mt76::controlWrite(
     uint32_t value,
     VendorRequest request
 ) {
-    ControlPacket packet = {};
+    UsbDevice::ControlPacket packet = {};
 
     packet.request = request;
 
@@ -1217,5 +1015,9 @@ void Mt76::controlWrite(
         packet.length = sizeof(value);
     }
 
-    controlTransfer(packet, true);
+    usbDevice->controlTransfer(packet, true);
 }
+
+Mt76Exception::Mt76Exception(
+    std::string message
+) : std::runtime_error(message) {}

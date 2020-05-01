@@ -18,8 +18,11 @@
 
 #pragma once
 
+#include "../utils/reader.h"
+
 #include <cstdint>
 #include <functional>
+#include <thread>
 #include <string>
 #include <stdexcept>
 #include <linux/uinput.h>
@@ -70,7 +73,7 @@ public:
     }
 
 private:
-    void readEvents(int signalPipe);
+    void readEvents();
     void emitCode(
         uint16_t type,
         uint16_t code,
@@ -81,7 +84,9 @@ private:
     void handleFeedbackErase(uint32_t id);
     void handleEvent(input_event event);
 
-    int file, stopPipe;
+    int file;
+    InterruptibleReader eventReader;
+    std::thread eventThread;
 
     ff_effect effect = {};
     uint16_t effectGain = 0xffff;

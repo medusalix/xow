@@ -21,47 +21,49 @@
 
 #include <functional>
 
-bool Dongle::afterOpen()
+Dongle::Dongle(
+    std::unique_ptr<UsbDevice> usbDevice
+) : Mt76(std::move(usbDevice)), stopThreads(false)
 {
-    Log::info("Dongle plugged in");
-
-    if (!Mt76::afterOpen())
-    {
-        return false;
-    }
-
-    Log::info("Dongle initialized");
-
-    return true;
+    threads.emplace_back(
+        &Dongle::readBulkPackets,
+        this,
+        MT_EP_READ
+    );
+    threads.emplace_back(
+        &Dongle::readBulkPackets,
+        this,
+        MT_EP_READ_PACKET
+    );
 }
 
-bool Dongle::beforeClose()
+Dongle::~Dongle()
 {
-    // Prevent controller connect/disconnect race conditions
-    std::lock_guard<std::mutex> lock(handlePacketMutex);
+    stopThreads = true;
 
-    Log::info("Dongle power-off");
-
-    for (std::unique_ptr<Controller> &controller : controllers)
+    // Wait for all threads to shut down
+    for (std::thread &thread : threads)
     {
-        if (controller && !controller->powerOff())
+        if (thread.joinable())
         {
-            Log::error("Failed to power off controller");
+            thread.join();
         }
     }
-
-    if (!Mt76::beforeClose())
-    {
-        return false;
-    }
-
-    return true;
 }
 
-void Dongle::clientConnected(uint8_t wcid, Bytes address)
+void Dongle::handleControllerConnect(Bytes address)
 {
-    auto sendPacket = std::bind(
-        &Dongle::sendControllerPacket,
+    uint8_t wcid = associateClient(address);
+
+    if (!wcid)
+    {
+        Log::error("Failed to associate client");
+
+        return;
+    }
+
+    GipDevice::SendPacket sendPacket = std::bind(
+        &Dongle::sendClientPacket,
         this,
         wcid,
         address,
@@ -73,8 +75,21 @@ void Dongle::clientConnected(uint8_t wcid, Bytes address)
     Log::info("Controller '%d' connected", wcid);
 }
 
-void Dongle::clientDisconnected(uint8_t wcid)
+void Dongle::handleControllerDisconnect(uint8_t wcid)
 {
+    // Invalid WCID
+    if (!wcid)
+    {
+        return;
+    }
+
+    if (!removeClient(wcid))
+    {
+        Log::error("Failed to remove client");
+
+        return;
+    }
+
     if (!controllers[wcid - 1])
     {
         Log::error("Controller '%d' is not connected", wcid);
@@ -87,72 +102,199 @@ void Dongle::clientDisconnected(uint8_t wcid)
     Log::info("Controller '%d' disconnected", wcid);
 }
 
-void Dongle::packetReceived(uint8_t wcid, const Bytes &packet)
+void Dongle::handleControllerPacket(const Bytes &packet)
 {
-    if (!controllers[wcid - 1])
+    const RxWi *rxWi = packet.toStruct<RxWi>();
+
+    // Skip 2 byte padding and 4 bytes at the end
+    const uint8_t *begin = packet.raw() +
+        sizeof(RxWi) +
+        sizeof(WlanFrame) +
+        sizeof(QosFrame) +
+        sizeof(uint16_t);
+    const uint8_t *end = packet.raw() +
+        packet.size() -
+        sizeof(uint32_t);
+    const Bytes data(
+        begin,
+        end
+    );
+
+    if (!controllers[rxWi->wcid - 1])
     {
-        Log::error("Packet for unconnected controller '%d'", wcid);
+        Log::error("Packet for unconnected controller '%d'", rxWi->wcid);
 
         return;
     }
 
-    if (!controllers[wcid - 1]->handlePacket(packet))
+    if (!controllers[rxWi->wcid - 1]->handlePacket(data))
     {
-        Log::error("Error handling packet for controller '%d'", wcid);
+        Log::error("Error handling packet for controller '%d'", rxWi->wcid);
     }
 }
 
-bool Dongle::sendControllerPacket(
-    uint8_t wcid,
-    Bytes address,
-    const Bytes &packet
-) {
-    TxWi txWi = {};
-
-    // OFDM transmission method
-    // Wait for acknowledgement
-    txWi.phyType = MT_PHY_TYPE_OFDM;
-    txWi.ack = 1;
-    txWi.mpduByteCount = sizeof(WlanFrame) + sizeof(QosFrame) + packet.size();
-
-    WlanFrame wlanFrame = {};
-
-    // Frame is sent from AP (DS)
-    // Duration is the time required to transmit (μs)
-    wlanFrame.frameControl.type = MT_WLAN_DATA;
-    wlanFrame.frameControl.subtype = MT_WLAN_QOS_DATA;
-    wlanFrame.frameControl.fromDs = 1;
-    wlanFrame.duration = 144;
-
-    address.copy(wlanFrame.destination);
-    macAddress.copy(wlanFrame.source);
-    macAddress.copy(wlanFrame.bssId);
-
-    QosFrame qosFrame = {};
-
-    // Frames and data must be 32-bit aligned
-    uint32_t length = sizeof(txWi) + sizeof(wlanFrame) + sizeof(qosFrame);
-    uint32_t wcidData = __builtin_bswap32(wcid - 1);
-    uint8_t framePadding = Bytes::padding<uint32_t>(length);
-    uint8_t dataPadding = Bytes::padding<uint32_t>(packet.size());
-
-    Bytes out;
-
-    out.append(wcidData);
-    out.pad(sizeof(uint32_t));
-    out.append(txWi);
-    out.append(wlanFrame);
-    out.append(qosFrame);
-    out.pad(framePadding);
-    out.append(packet);
-    out.pad(dataPadding);
-
-    if (!sendCommand(CMD_PACKET_TX, out))
+void Dongle::handlePairingButtonPress()
+{
+    // Start sending the 'pairing' beacon
+    if (!writeBeacon(true))
     {
-        Log::error("Failed to send controller packet");
+        Log::error("Failed to write pairing beacon");
 
-        return false;
+        return;
     }
 
-    return true;
+    if (!setLedMode(MT_LED_BLINK))
+    {
+        Log::error("Failed to set LED mode");
+
+        return;
+    }
+
+    Log::info("Pairing initiated");
+}
+
+void Dongle::handleWlanPacket(const Bytes &packet)
+{
+    const RxWi *rxWi = packet.toStruct<RxWi>();
+    const WlanFrame *wlanFrame = packet.toStruct<WlanFrame>(sizeof(RxWi));
+
+    const Bytes source(
+        wlanFrame->source,
+        wlanFrame->source + macAddress.size()
+    );
+    const Bytes destination(
+        wlanFrame->destination,
+        wlanFrame->destination + macAddress.size()
+    );
+
+    // Packet has wrong destination address
+    if (destination != macAddress)
+    {
+        return;
+    }
+
+    uint8_t type = wlanFrame->frameControl.type;
+    uint8_t subtype = wlanFrame->frameControl.subtype;
+
+    if (type == MT_WLAN_DATA && subtype == MT_WLAN_QOS_DATA)
+    {
+        handleControllerPacket(packet);
+
+        return;
+    }
+
+    if (type != MT_WLAN_MGMT)
+    {
+        return;
+    }
+
+    if (subtype == MT_WLAN_ASSOC_REQ)
+    {
+        handleControllerConnect(source);
+    }
+
+    // Only kept for compatibility with 1537 controllers
+    // They associate, disassociate and associate again during pairing
+    // Disassociations happen without triggering EVT_CLIENT_LOST
+    else if (subtype == MT_WLAN_DISASSOC)
+    {
+        handleControllerDisconnect(rxWi->wcid);
+    }
+
+    // Reserved frames are used for different purposes
+    // Most of them are yet to be discovered
+    else if (subtype == MT_WLAN_RESERVED)
+    {
+        const ReservedFrame *frame = packet.toStruct<ReservedFrame>(
+            sizeof(RxWi) + sizeof(WlanFrame)
+        );
+
+        // Type 0x01 is for pairing requests
+        if (frame->type != 0x01)
+        {
+            return;
+        }
+
+        if (!pairClient(source))
+        {
+            Log::error("Failed to pair client");
+
+            return;
+        }
+
+        Log::debug(
+            "Controller paired: %s",
+            Log::formatBytes(source).c_str()
+        );
+    }
+}
+
+void Dongle::handleBulkData(const Bytes &data)
+{
+    if (data.size() < sizeof(RxInfoGeneric))
+    {
+        Log::error("Invalid data received");
+
+        return;
+    }
+
+    std::lock_guard<std::mutex> lock(handleDataMutex);
+
+    const RxInfoGeneric *rxInfo = data.toStruct<RxInfoGeneric>();
+
+    if (rxInfo->port == CPU_RX_PORT)
+    {
+        const RxInfoCommand *info = data.toStruct<RxInfoCommand>();
+        const Bytes packet(data, sizeof(RxInfoCommand));
+
+        if (info->eventType == EVT_PACKET_RX)
+        {
+            handleWlanPacket(packet);
+        }
+
+        else if (info->eventType == EVT_CLIENT_LOST && packet.size() > 0)
+        {
+            handleControllerDisconnect(packet[0]);
+        }
+
+        else if (info->eventType == EVT_BUTTON_PRESS)
+        {
+            handlePairingButtonPress();
+        }
+    }
+
+    else if (rxInfo->port == WLAN_PORT)
+    {
+        const RxInfoPacket *info = data.toStruct<RxInfoPacket>();
+
+        if (info->is80211)
+        {
+            const Bytes packet(data, sizeof(RxInfoPacket));
+
+            handleWlanPacket(packet);
+        }
+    }
+}
+
+void Dongle::readBulkPackets(uint8_t endpoint)
+{
+    FixedBytes<USB_MAX_BULK_TRANSFER_SIZE> buffer;
+
+    while (!stopThreads)
+    {
+        int transferred = usbDevice->bulkRead(endpoint, buffer);
+
+        // Bulk read failed
+        if (transferred < 0)
+        {
+            break;
+        }
+
+        if (transferred > 0)
+        {
+            Bytes data = buffer.toBytes(transferred);
+
+            handleBulkData(data);
+        }
+    }
 }

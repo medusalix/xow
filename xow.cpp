@@ -22,7 +22,6 @@
 
 #include <cstdlib>
 #include <cstring>
-#include <stdexcept>
 #include <sys/file.h>
 
 int main()
@@ -48,24 +47,13 @@ int main()
         return EXIT_FAILURE;
     }
 
-    try
-    {
-        UsbDeviceManager manager;
-        Dongle dongle;
+    UsbDeviceManager manager;
+    Dongle dongle(manager.getDevice({
+        { DONGLE_VID, DONGLE_PID_OLD },
+        { DONGLE_VID, DONGLE_PID_NEW }
+    }));
 
-        manager.registerDevice(dongle, {
-            { DONGLE_VID, DONGLE_PID_OLD },
-            { DONGLE_VID, DONGLE_PID_NEW }
-        });
-        manager.handleEvents(dongle);
-    }
-
-    catch (const std::runtime_error &exception)
-    {
-        Log::error(exception.what());
-
-        return EXIT_FAILURE;
-    }
+    manager.waitForShutdown();
 
     return EXIT_SUCCESS;
 }

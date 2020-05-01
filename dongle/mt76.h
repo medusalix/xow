@@ -21,9 +21,8 @@
 #include "usb.h"
 
 #include <cstdint>
-#include <array>
+#include <atomic>
 #include <string>
-#include <mutex>
 
 #define BITS_PER_LONG (sizeof(long) * 8)
 #define BIT(nr) (1UL << (nr))
@@ -1252,48 +1251,21 @@ union DmaConfig
  * Interfaces with the MT76 chip
  * Handles basic 802.11 client operations
  */
-class Mt76 : public UsbDevice
+class Mt76
 {
 protected:
-    virtual bool afterOpen() override;
-    virtual bool beforeClose() override;
-
-    /* WLAN client callbacks */
-    virtual void clientConnected(uint8_t wcid, Bytes address) = 0;
-    virtual void clientDisconnected(uint8_t wcid) = 0;
-    virtual void packetReceived(uint8_t wcid, const Bytes &packet) = 0;
+    Mt76(std::unique_ptr<UsbDevice> usbDevice);
+    virtual ~Mt76();
 
     /* WLAN client operations */
     uint8_t associateClient(Bytes address);
     bool removeClient(uint8_t wcid);
-
-    bool sendCommand(McuCommand command, const Bytes &data);
-
-    Bytes macAddress;
-    std::mutex handlePacketMutex;
-
-private:
-    /* Packet handling and transmission */
-    void handleWlanPacket(const Bytes &packet);
-    void handleClientPacket(const Bytes &packet);
-    void handleClientLost(const Bytes &packet);
-    void handleButtonPress();
-    void handleBulkPacket(const Bytes &packet);
     bool pairClient(Bytes address);
-    bool sendWlanPacket(const Bytes &packet);
-
-    /* Initialization routines */
-    bool initRegisters();
-    void calibrateCrystal();
-    bool initChannels();
-    bool loadFirmware();
-    bool loadFirmwarePart(
-        uint32_t offset,
-        Bytes::Iterator start,
-        Bytes::Iterator end
+    bool sendClientPacket(
+        uint8_t wcid,
+        Bytes address,
+        const Bytes &packet
     );
-    bool initChip();
-    void readBulkPackets(uint8_t endpoint);
 
     /* MCU functions/commands */
     bool writeBeacon(bool pairing = false);
@@ -1310,9 +1282,27 @@ private:
     );
     bool initGain(uint32_t index, const Bytes &values);
     bool setLedMode(uint32_t index);
-    Bytes efuseRead(uint8_t address, uint8_t index);
+    bool sendCommand(McuCommand command, const Bytes &data);
 
-    /* USB transfer */
+    Bytes macAddress;
+    std::unique_ptr<UsbDevice> usbDevice;
+
+private:
+    /* Packet transmission */
+    bool sendWlanPacket(const Bytes &packet);
+
+    /* Initialization routines */
+    bool initRegisters();
+    void calibrateCrystal();
+    bool initChannels();
+    bool loadFirmware();
+    bool loadFirmwarePart(
+        uint32_t offset,
+        Bytes::Iterator start,
+        Bytes::Iterator end
+    );
+
+    /* USB/MCU communication */
     uint32_t controlRead(
         uint16_t address,
         VendorRequest request = MT_VEND_MULTI_READ
@@ -1322,6 +1312,13 @@ private:
         uint32_t value,
         VendorRequest request = MT_VEND_MULTI_WRITE
     );
+    Bytes efuseRead(uint8_t address, uint8_t index);
 
-    uint16_t connectedWcids = 0;
+    std::atomic<uint16_t> connectedWcids;
+};
+
+class Mt76Exception : public std::runtime_error
+{
+public:
+    Mt76Exception(std::string message);
 };

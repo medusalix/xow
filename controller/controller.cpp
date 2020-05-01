@@ -41,9 +41,12 @@ Controller::Controller(
         std::placeholders::_2
     )) {}
 
-bool Controller::powerOff()
+Controller::~Controller()
 {
-    return setPowerMode(DEVICE_ID_CONTROLLER, POWER_OFF);
+    if (!setPowerMode(DEVICE_ID_CONTROLLER, POWER_OFF))
+    {
+        Log::error("Failed to turn off controller");
+    }
 }
 
 void Controller::deviceAnnounced(uint8_t id, const AnnounceData *announce)

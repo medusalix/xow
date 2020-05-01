@@ -42,11 +42,11 @@ class Bytes;
 class GipDevice
 {
 public:
+    using SendPacket = std::function<bool(const Bytes &data)>;
+
     bool handlePacket(const Bytes &packet);
 
 protected:
-    using SendPacket = std::function<bool(const Bytes &data)>;
-
     enum BatteryType
     {
         BATT_TYPE_ALKALINE = 0x01,

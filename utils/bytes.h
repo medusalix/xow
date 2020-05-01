@@ -39,14 +39,19 @@ public:
 
     inline Bytes() {}
 
-    inline Bytes(std::initializer_list<uint8_t> elements)
-        : data(elements) {}
+    inline Bytes(
+        std::initializer_list<uint8_t> elements
+    ) : data(elements) {}
 
-    inline Bytes(const uint8_t *begin, const uint8_t *end)
-        : data(begin, end) {}
+    inline Bytes(
+        const uint8_t *begin,
+        const uint8_t *end
+    ) : data(begin, end) {}
 
-    inline Bytes(const Bytes &bytes, size_t skip)
-        : data(bytes.data.begin() + skip, bytes.data.end()) {}
+    inline Bytes(
+        const Bytes &bytes,
+        size_t skip
+    ) : data(bytes.data.begin() + skip, bytes.data.end()) {}
 
     inline Iterator begin() const
     {
