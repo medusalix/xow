@@ -111,14 +111,25 @@ sudo make uninstall
 
 ## Troubleshooting
 
+### Error messages
+
+- `InputException`: No such file or directory
+    - Make sure that `/dev/uinput` is available (requires the `uinput` kernel module).
+- `InputException`: Permission denied
+    - Make sure that the `udev` rules are correctly installed and that the permissions for `/dev/uinput` allow read and write access.
+    There might be conflicts with existing `udev` rules on some systems that need to be resolved.
+- `Mt76Exception` or `LIBUSB_ERROR_NO_DEVICE`
+    - Make sure that you are only running one instance of xow at a time.
+    If you are running xow manually you have to stop the `systemd` service.
+
+### Configuration issues
+
 - Buttons/triggers/sticks are mapped incorrectly
     - Try the options listed on [this page](https://wiki.archlinux.org/index.php/Gamepad#Setting_up_deadzones_and_calibration) to remap your inputs.
 - Input from the sticks is jumping around
     - Try the options listed on [this page](https://wiki.archlinux.org/index.php/Gamepad#Setting_up_deadzones_and_calibration) to set your deadzones.
-- Controller does not connect to the dongle
-    - See [supported devices](#supported-devices). Do a packet capture and open an issue.
 
-**NOTE:** Please refrain from opening issues concerning input remapping, deadzones or game compatibility, as these topics are outside the scope of this project.
+**NOTE:** Please refrain from opening issues concerning input remapping, deadzones or game compatibility as these topics are outside the scope of this project.
 
 ## How it works
 
