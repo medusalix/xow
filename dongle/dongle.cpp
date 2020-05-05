@@ -55,7 +55,7 @@ void Dongle::handleControllerConnect(Bytes address)
 {
     uint8_t wcid = associateClient(address);
 
-    if (!wcid)
+    if (wcid < 1)
     {
         Log::error("Failed to associate client");
 
@@ -78,7 +78,7 @@ void Dongle::handleControllerConnect(Bytes address)
 void Dongle::handleControllerDisconnect(uint8_t wcid)
 {
     // Invalid WCID
-    if (!wcid)
+    if (wcid < 1 || wcid > MT_WCID_COUNT)
     {
         return;
     }
@@ -105,6 +105,13 @@ void Dongle::handleControllerDisconnect(uint8_t wcid)
 void Dongle::handleControllerPacket(const Bytes &packet)
 {
     const RxWi *rxWi = packet.toStruct<RxWi>();
+    uint8_t wcid = rxWi->wcid;
+
+    // Invalid WCID
+    if (wcid < 1 || wcid > MT_WCID_COUNT)
+    {
+        return;
+    }
 
     // Skip 2 byte padding and 4 bytes at the end
     const uint8_t *begin = packet.raw() +
@@ -120,16 +127,16 @@ void Dongle::handleControllerPacket(const Bytes &packet)
         end
     );
 
-    if (!controllers[rxWi->wcid - 1])
+    if (!controllers[wcid - 1])
     {
-        Log::error("Packet for unconnected controller '%d'", rxWi->wcid);
+        Log::error("Packet for unconnected controller '%d'", wcid);
 
         return;
     }
 
-    if (!controllers[rxWi->wcid - 1]->handlePacket(data))
+    if (!controllers[wcid - 1]->handlePacket(data))
     {
-        Log::error("Error handling packet for controller '%d'", rxWi->wcid);
+        Log::error("Error handling packet for controller '%d'", wcid);
     }
 }
 

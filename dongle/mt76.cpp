@@ -100,7 +100,7 @@ uint8_t Mt76::associateClient(Bytes address)
     uint16_t freeWcids = static_cast<uint16_t>(~connectedWcids);
     uint8_t wcid = __builtin_ffs(freeWcids);
 
-    if (!wcid)
+    if (wcid == 0)
     {
         Log::error("All WCIDs are taken");
 

@@ -179,6 +179,7 @@ protected:
     } __attribute__((packed));
 
     GipDevice(SendPacket sendPacket);
+    virtual ~GipDevice() = default;
 
     virtual void deviceAnnounced(uint8_t id, const AnnounceData *announce) = 0;
     virtual void statusReceived(uint8_t id, const StatusData *status) = 0;
