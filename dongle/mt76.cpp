@@ -75,7 +75,7 @@ Mt76::Mt76(
         throw Mt76Exception("Failed to init channels");
     }
 
-    if (!writeBeacon())
+    if (!writeBeacon(false))
     {
         throw Mt76Exception("Failed to write beacon");
     }
@@ -248,21 +248,6 @@ bool Mt76::pairClient(Bytes address)
     if (!sendWlanPacket(out))
     {
         Log::error("Failed to send pairing packet");
-
-        return false;
-    }
-
-    // Stop sending the 'pairing' beacon
-    if (!writeBeacon())
-    {
-        Log::error("Failed to write beacon");
-
-        return false;
-    }
-
-    if (!setLedMode(MT_LED_ON))
-    {
-        Log::error("Failed to set LED mode");
 
         return false;
     }

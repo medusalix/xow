@@ -19,7 +19,6 @@
 #pragma once
 
 #include "../utils/bytes.h"
-#include "../utils/reader.h"
 
 #include <cstdint>
 #include <functional>
@@ -37,10 +36,9 @@
  */
 class UsbDevice
 {
-private:
+public:
     using Terminate = std::function<void()>;
 
-public:
     struct ControlPacket
     {
         uint8_t request;
@@ -67,7 +65,7 @@ private:
 
 /*
  * Provides access to USB devices
- * Handles device enumeration, hotplugs and signals
+ * Handles device enumeration and hot plugging
  */
 class UsbDeviceManager
 {
@@ -81,9 +79,9 @@ public:
     ~UsbDeviceManager();
 
     std::unique_ptr<UsbDevice> getDevice(
-        std::initializer_list<HardwareId> ids
+        std::initializer_list<HardwareId> ids,
+        UsbDevice::Terminate terminate
     );
-    void waitForShutdown();
 
 private:
     static int hotplugCallback(
@@ -92,17 +90,10 @@ private:
         libusb_hotplug_event event,
         void *userData
     );
-
-    libusb_device* waitForDevice(
-        std::initializer_list<HardwareId> ids
-    );
-
-    sigset_t signalMask;
-    InterruptibleReader signalReader;
 };
 
 class UsbException : public std::runtime_error
 {
 public:
-    UsbException(std::string message, std::string error);
+    UsbException(std::string message, int error);
 };

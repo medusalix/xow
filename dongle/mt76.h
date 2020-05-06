@@ -1268,7 +1268,7 @@ protected:
     );
 
     /* MCU functions/commands */
-    bool writeBeacon(bool pairing = false);
+    bool writeBeacon(bool pairing);
     bool selectFunction(McuFunction function, uint32_t value);
     bool powerMode(McuPowerMode mode);
     bool loadCr(McuCrMode mode);

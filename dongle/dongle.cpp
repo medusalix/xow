@@ -51,13 +51,35 @@ Dongle::~Dongle()
     }
 }
 
+bool Dongle::setPairingStatus(bool enable)
+{
+    // Set the pairing status for the beacon
+    if (!writeBeacon(enable))
+    {
+        Log::error("Failed to write beacon");
+
+        return false;
+    }
+
+    if (!setLedMode(enable ? MT_LED_BLINK : MT_LED_ON))
+    {
+        Log::error("Failed to set LED mode");
+
+        return false;
+    }
+
+    Log::info(enable ? "Pairing enabled" : "Pairing disabled");
+
+    return true;
+}
+
 void Dongle::handleControllerConnect(Bytes address)
 {
     uint8_t wcid = associateClient(address);
 
     if (wcid < 1)
     {
-        Log::error("Failed to associate client");
+        Log::error("Failed to associate controller");
 
         return;
     }
@@ -85,7 +107,7 @@ void Dongle::handleControllerDisconnect(uint8_t wcid)
 
     if (!removeClient(wcid))
     {
-        Log::error("Failed to remove client");
+        Log::error("Failed to remove controller");
 
         return;
     }
@@ -120,6 +142,13 @@ void Dongle::handleControllerPair(Bytes address, const Bytes &packet)
     if (!pairClient(address))
     {
         Log::error("Failed to pair controller");
+
+        return;
+    }
+
+    if (!setPairingStatus(false))
+    {
+        Log::error("Failed to disable pairing");
 
         return;
     }
@@ -159,26 +188,6 @@ void Dongle::handleControllerPacket(uint8_t wcid, const Bytes &packet)
     {
         Log::error("Error handling packet for controller '%d'", wcid);
     }
-}
-
-void Dongle::handlePairingButtonPress()
-{
-    // Start sending the 'pairing' beacon
-    if (!writeBeacon(true))
-    {
-        Log::error("Failed to write pairing beacon");
-
-        return;
-    }
-
-    if (!setLedMode(MT_LED_BLINK))
-    {
-        Log::error("Failed to set LED mode");
-
-        return;
-    }
-
-    Log::info("Pairing initiated");
 }
 
 void Dongle::handleWlanPacket(const Bytes &packet)
@@ -282,7 +291,7 @@ void Dongle::handleBulkData(const Bytes &data)
 
         else if (info->eventType == EVT_BUTTON_PRESS)
         {
-            handlePairingButtonPress();
+            setPairingStatus(true);
         }
     }
 

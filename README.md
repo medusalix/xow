@@ -109,6 +109,16 @@ sudo systemctl disable xow
 sudo make uninstall
 ```
 
+## Interoperability
+
+You can enable the dongle's pairing mode by sending the `SIGUSR1` signal to xow:
+
+```
+sudo systemctl kill -s SIGUSR1 xow
+```
+
+**NOTE:** Signals are only handled *after* a dongle has been plugged in. The default behavior for `SIGUSR1` is to terminate the process.
+
 ## Troubleshooting
 
 ### Error messages
