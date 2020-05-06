@@ -47,7 +47,8 @@ private:
     /* Packet handling */
     void handleControllerConnect(Bytes address);
     void handleControllerDisconnect(uint8_t wcid);
-    void handleControllerPacket(const Bytes &packet);
+    void handleControllerPair(Bytes address, const Bytes &packet);
+    void handleControllerPacket(uint8_t wcid, const Bytes &packet);
     void handlePairingButtonPress();
     void handleWlanPacket(const Bytes &packet);
     void handleBulkData(const Bytes &data);

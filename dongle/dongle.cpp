@@ -102,30 +102,51 @@ void Dongle::handleControllerDisconnect(uint8_t wcid)
     Log::info("Controller '%d' disconnected", wcid);
 }
 
-void Dongle::handleControllerPacket(const Bytes &packet)
+void Dongle::handleControllerPair(Bytes address, const Bytes &packet)
 {
-    const RxWi *rxWi = packet.toStruct<RxWi>();
-    uint8_t wcid = rxWi->wcid;
+    if (packet.size() < sizeof(ReservedFrame))
+    {
+        return;
+    }
 
+    const ReservedFrame *frame = packet.toStruct<ReservedFrame>();
+
+    // Type 0x01 is for pairing requests
+    if (frame->type != 0x01)
+    {
+        return;
+    }
+
+    if (!pairClient(address))
+    {
+        Log::error("Failed to pair controller");
+
+        return;
+    }
+
+    Log::debug(
+        "Controller paired: %s",
+        Log::formatBytes(address).c_str()
+    );
+}
+
+void Dongle::handleControllerPacket(uint8_t wcid, const Bytes &packet)
+{
     // Invalid WCID
     if (wcid < 1 || wcid > MT_WCID_COUNT)
     {
         return;
     }
 
+    if (packet.size() < sizeof(QosFrame) + sizeof(uint16_t) + sizeof(uint32_t))
+    {
+        return;
+    }
+
     // Skip 2 byte padding and 4 bytes at the end
-    const uint8_t *begin = packet.raw() +
-        sizeof(RxWi) +
-        sizeof(WlanFrame) +
-        sizeof(QosFrame) +
-        sizeof(uint16_t);
-    const uint8_t *end = packet.raw() +
-        packet.size() -
-        sizeof(uint32_t);
-    const Bytes data(
-        begin,
-        end
-    );
+    const uint8_t *begin = packet.raw() + sizeof(QosFrame) + sizeof(uint16_t);
+    const uint8_t *end = packet.raw() + packet.size() - sizeof(uint32_t);
+    const Bytes data(begin, end);
 
     if (!controllers[wcid - 1])
     {
@@ -162,6 +183,12 @@ void Dongle::handlePairingButtonPress()
 
 void Dongle::handleWlanPacket(const Bytes &packet)
 {
+    // Ignore invalid packets
+    if (packet.size() < sizeof(RxWi) + sizeof(WlanFrame))
+    {
+        return;
+    }
+
     const RxWi *rxWi = packet.toStruct<RxWi>();
     const WlanFrame *wlanFrame = packet.toStruct<WlanFrame>(sizeof(RxWi));
 
@@ -185,7 +212,12 @@ void Dongle::handleWlanPacket(const Bytes &packet)
 
     if (type == MT_WLAN_DATA && subtype == MT_WLAN_QOS_DATA)
     {
-        handleControllerPacket(packet);
+        const Bytes innerPacket(
+            packet,
+            sizeof(RxWi) + sizeof(WlanFrame)
+        );
+
+        handleControllerPacket(rxWi->wcid, innerPacket);
 
         return;
     }
@@ -212,36 +244,20 @@ void Dongle::handleWlanPacket(const Bytes &packet)
     // Most of them are yet to be discovered
     else if (subtype == MT_WLAN_RESERVED)
     {
-        const ReservedFrame *frame = packet.toStruct<ReservedFrame>(
+        const Bytes innerPacket(
+            packet,
             sizeof(RxWi) + sizeof(WlanFrame)
         );
 
-        // Type 0x01 is for pairing requests
-        if (frame->type != 0x01)
-        {
-            return;
-        }
-
-        if (!pairClient(source))
-        {
-            Log::error("Failed to pair client");
-
-            return;
-        }
-
-        Log::debug(
-            "Controller paired: %s",
-            Log::formatBytes(source).c_str()
-        );
+        handleControllerPair(source, innerPacket);
     }
 }
 
 void Dongle::handleBulkData(const Bytes &data)
 {
+    // Ignore invalid data
     if (data.size() < sizeof(RxInfoGeneric))
     {
-        Log::error("Invalid data received");
-
         return;
     }
 

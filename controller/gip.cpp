@@ -61,6 +61,12 @@ GipDevice::GipDevice(SendPacket sendPacket) : sendPacket(sendPacket) {}
 
 bool GipDevice::handlePacket(const Bytes &packet)
 {
+    // Ignore invalid packets
+    if (packet.size() < sizeof(Frame))
+    {
+        return true;
+    }
+
     const Frame *frame = packet.toStruct<Frame>();
 
     if (frame->type & TYPE_ACK && !acknowledgePacket(*frame))
