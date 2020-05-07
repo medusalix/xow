@@ -145,15 +145,14 @@ void Dongle::handleControllerPacket(uint8_t wcid, const Bytes &packet)
         return;
     }
 
-    if (packet.size() < sizeof(QosFrame) + sizeof(uint16_t) + sizeof(uint32_t))
+    // Ignore invalid or empty packets
+    if (packet.size() <= sizeof(QosFrame) + sizeof(uint16_t))
     {
         return;
     }
 
-    // Skip 2 byte padding and 4 bytes at the end
-    const uint8_t *begin = packet.raw() + sizeof(QosFrame) + sizeof(uint16_t);
-    const uint8_t *end = packet.raw() + packet.size() - sizeof(uint32_t);
-    const Bytes data(begin, end);
+    // Skip 2 bytes of padding
+    const Bytes data(packet, sizeof(QosFrame) + sizeof(uint16_t));
 
     if (!controllers[wcid - 1])
     {
@@ -170,8 +169,8 @@ void Dongle::handleControllerPacket(uint8_t wcid, const Bytes &packet)
 
 void Dongle::handleWlanPacket(const Bytes &packet)
 {
-    // Ignore invalid packets
-    if (packet.size() < sizeof(RxWi) + sizeof(WlanFrame))
+    // Ignore invalid or empty packets
+    if (packet.size() <= sizeof(RxWi) + sizeof(WlanFrame))
     {
         return;
     }
@@ -242,28 +241,29 @@ void Dongle::handleWlanPacket(const Bytes &packet)
 
 void Dongle::handleBulkData(const Bytes &data)
 {
-    // Ignore invalid data
-    if (data.size() < sizeof(RxInfoGeneric))
+    // Ignore invalid or empty data
+    if (data.size() <= sizeof(RxInfoGeneric) + sizeof(uint32_t))
     {
         return;
     }
 
-    std::lock_guard<std::mutex> lock(handleDataMutex);
-
+    // Skip packet end marker (4 bytes, identical to header)
     const RxInfoGeneric *rxInfo = data.toStruct<RxInfoGeneric>();
+    const Bytes packet(data, sizeof(RxInfoGeneric), sizeof(uint32_t));
 
     if (rxInfo->port == CPU_RX_PORT)
     {
         const RxInfoCommand *info = data.toStruct<RxInfoCommand>();
-        const Bytes packet(data, sizeof(RxInfoCommand));
+        std::lock_guard<std::mutex> lock(handlePacketMutex);
 
         if (info->eventType == EVT_PACKET_RX)
         {
             handleWlanPacket(packet);
         }
 
-        else if (info->eventType == EVT_CLIENT_LOST && packet.size() > 0)
+        else if (info->eventType == EVT_CLIENT_LOST)
         {
+            // Packet is guaranteed not to be empty
             handleControllerDisconnect(packet[0]);
         }
 
@@ -276,11 +276,10 @@ void Dongle::handleBulkData(const Bytes &data)
     else if (rxInfo->port == WLAN_PORT)
     {
         const RxInfoPacket *info = data.toStruct<RxInfoPacket>();
+        std::lock_guard<std::mutex> lock(handlePacketMutex);
 
         if (info->is80211)
         {
-            const Bytes packet(data, sizeof(RxInfoPacket));
-
             handleWlanPacket(packet);
         }
     }

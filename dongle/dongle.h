@@ -58,6 +58,6 @@ private:
     std::vector<std::thread> threads;
     std::atomic<bool> stopThreads;
 
-    std::mutex handleDataMutex;
+    std::mutex handlePacketMutex;
     std::array<std::unique_ptr<Controller>, MT_WCID_COUNT> controllers;
 };

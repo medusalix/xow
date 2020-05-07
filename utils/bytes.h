@@ -50,8 +50,9 @@ public:
 
     inline Bytes(
         const Bytes &bytes,
-        size_t skip
-    ) : data(bytes.data.begin() + skip, bytes.data.end()) {}
+        size_t skipBegin,
+        size_t skipEnd = 0
+    ) : data(bytes.data.begin() + skipBegin, bytes.data.end() - skipEnd) {}
 
     inline Iterator begin() const
     {
