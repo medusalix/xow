@@ -24,8 +24,6 @@
 
 namespace Log
 {
-    std::mutex mutex;
-
     std::string formatBytes(const Bytes &bytes)
     {
         std::ostringstream stream;
@@ -46,17 +44,22 @@ namespace Log
         return output;
     }
 
-    void printHeader(
-        FILE *output,
-        std::string level,
-        std::string message
-    ) {
-        std::time_t time = std::time(nullptr);
-        std::tm localTime = *std::localtime(&time);
+    std::string formatLog(std::string level, std::string message)
+    {
         std::ostringstream stream;
+        std::time_t time = std::time(nullptr);
+        std::tm localTime = {};
 
-        stream << std::put_time(&localTime, "%F %T");
+        // Add local time to output if available
+        if (localtime_r(&time, &localTime))
+        {
+            stream << std::put_time(&localTime, "%F %T") << " ";
+        }
 
-        std::fprintf(output, "%s %-5s - ", stream.str().c_str(), level.c_str());
+        stream << std::left << std::setw(5);
+        stream << level << " - ";
+        stream << message << std::endl;
+
+        return stream.str();
     }
 }
