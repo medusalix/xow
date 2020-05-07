@@ -1317,7 +1317,7 @@ private:
     );
     Bytes efuseRead(uint8_t address, uint8_t index);
 
-    std::atomic<uint16_t> connectedWcids;
+    uint16_t connectedClients = 0;
 };
 
 class Mt76Exception : public std::runtime_error

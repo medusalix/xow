@@ -24,7 +24,7 @@ extern uint8_t _binary_firmware_bin_end[];
 
 Mt76::Mt76(
     std::unique_ptr<UsbDevice> usbDevice
-) : usbDevice(std::move(usbDevice)), connectedWcids(0)
+) : usbDevice(std::move(usbDevice))
 {
     if (!loadFirmware())
     {
@@ -97,8 +97,8 @@ Mt76::~Mt76()
 uint8_t Mt76::associateClient(Bytes address)
 {
     // Find first available WCID
-    uint16_t freeWcids = static_cast<uint16_t>(~connectedWcids);
-    uint8_t wcid = __builtin_ffs(freeWcids);
+    uint16_t freeIds = static_cast<uint16_t>(~connectedClients);
+    uint8_t wcid = __builtin_ffs(freeIds);
 
     if (wcid == 0)
     {
@@ -107,7 +107,7 @@ uint8_t Mt76::associateClient(Bytes address)
         return 0;
     }
 
-    connectedWcids |= BIT(wcid - 1);
+    connectedClients |= BIT(wcid - 1);
 
     TxWi txWi = {};
 
@@ -186,7 +186,7 @@ bool Mt76::removeClient(uint8_t wcid)
     };
 
     // Remove WCID from connected clients
-    connectedWcids &= ~BIT(wcid - 1);
+    connectedClients &= ~BIT(wcid - 1);
 
     if (!initGain(2, gain))
     {
@@ -202,7 +202,7 @@ bool Mt76::removeClient(uint8_t wcid)
         return false;
     }
 
-    if (!connectedWcids && !setLedMode(MT_LED_OFF))
+    if (connectedClients == 0 && !setLedMode(MT_LED_OFF))
     {
         Log::error("Failed to set LED mode");
 
@@ -261,7 +261,7 @@ bool Mt76::sendClientPacket(
     const Bytes &packet
 ) {
     // Skip unconnected WCIDs
-    if (!(connectedWcids & BIT(wcid - 1)))
+    if ((connectedClients & BIT(wcid - 1)) == 0)
     {
         return true;
     }
