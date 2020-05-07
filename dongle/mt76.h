@@ -1268,21 +1268,7 @@ protected:
     );
 
     /* MCU functions/commands */
-    bool writeBeacon(bool pairing);
-    bool selectFunction(McuFunction function, uint32_t value);
-    bool powerMode(McuPowerMode mode);
-    bool loadCr(McuCrMode mode);
-    bool burstWrite(uint32_t index, const Bytes &values);
-    bool calibrate(McuCalibration calibration, uint32_t value);
-    bool configureChannel(
-        uint8_t channel,
-        uint8_t group,
-        uint8_t txPower,
-        bool enabled
-    );
-    bool initGain(uint32_t index, const Bytes &values);
-    bool setLedMode(uint32_t index);
-    bool sendCommand(McuCommand command, const Bytes &data);
+    bool setPairingStatus(bool enable);
 
     Bytes macAddress;
     std::unique_ptr<UsbDevice> usbDevice;
@@ -1301,6 +1287,23 @@ private:
         Bytes::Iterator start,
         Bytes::Iterator end
     );
+
+    /* MCU functions/commands */
+    bool writeBeacon(bool pairing);
+    bool selectFunction(McuFunction function, uint32_t value);
+    bool powerMode(McuPowerMode mode);
+    bool loadCr(McuCrMode mode);
+    bool burstWrite(uint32_t index, const Bytes &values);
+    bool calibrate(McuCalibration calibration, uint32_t value);
+    bool configureChannel(
+        uint8_t channel,
+        uint8_t group,
+        uint8_t txPower,
+        bool enabled
+    );
+    bool initGain(uint32_t index, const Bytes &values);
+    bool setLedMode(uint32_t index);
+    bool sendCommand(McuCommand command, const Bytes &data);
 
     /* USB/MCU communication */
     uint32_t controlRead(

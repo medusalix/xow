@@ -51,28 +51,6 @@ Dongle::~Dongle()
     }
 }
 
-bool Dongle::setPairingStatus(bool enable)
-{
-    // Set the pairing status for the beacon
-    if (!writeBeacon(enable))
-    {
-        Log::error("Failed to write beacon");
-
-        return false;
-    }
-
-    if (!setLedMode(enable ? MT_LED_BLINK : MT_LED_ON))
-    {
-        Log::error("Failed to set LED mode");
-
-        return false;
-    }
-
-    Log::info(enable ? "Pairing enabled" : "Pairing disabled");
-
-    return true;
-}
-
 void Dongle::handleControllerConnect(Bytes address)
 {
     uint8_t wcid = associateClient(address);

@@ -43,7 +43,7 @@ public:
     Dongle(std::unique_ptr<UsbDevice> usbDevice);
     ~Dongle();
 
-    bool setPairingStatus(bool enable);
+    using Mt76::setPairingStatus;
 
 private:
     /* Packet handling */
