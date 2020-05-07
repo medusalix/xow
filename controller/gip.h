@@ -49,6 +49,7 @@ public:
 protected:
     enum BatteryType
     {
+        BATT_TYPE_CHARGING = 0x00,
         BATT_TYPE_ALKALINE = 0x01,
         BATT_TYPE_NIMH = 0x02,
     };
