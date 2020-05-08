@@ -53,57 +53,57 @@ Dongle::~Dongle()
 
 void Dongle::handleControllerConnect(Bytes address)
 {
+    std::lock_guard<std::mutex> lock(controllerMutex);
+
     uint8_t wcid = associateClient(address);
 
-    if (wcid < 1)
+    if (wcid > 0)
     {
-        Log::error("Failed to associate controller");
+        GipDevice::SendPacket sendPacket = std::bind(
+            &Dongle::sendClientPacket,
+            this,
+            wcid,
+            address,
+            std::placeholders::_1
+        );
 
-        return;
+        controllers[wcid - 1].reset(new Controller(sendPacket));
+
+        Log::info("Controller '%d' connected", wcid);
     }
 
-    GipDevice::SendPacket sendPacket = std::bind(
-        &Dongle::sendClientPacket,
-        this,
-        wcid,
-        address,
-        std::placeholders::_1
-    );
-
-    controllers[wcid - 1].reset(new Controller(sendPacket));
-
-    Log::info("Controller '%d' connected", wcid);
+    else
+    {
+        Log::error("Failed to associate controller");
+    }
 }
 
 void Dongle::handleControllerDisconnect(uint8_t wcid)
 {
-    // Invalid WCID
+    // Ignore invalid WCIDs
     if (wcid < 1 || wcid > MT_WCID_COUNT)
     {
         return;
     }
 
-    if (!removeClient(wcid))
-    {
-        Log::error("Failed to remove controller");
-
-        return;
-    }
-
-    if (!controllers[wcid - 1])
-    {
-        Log::error("Controller '%d' is not connected", wcid);
-
-        return;
-    }
+    std::lock_guard<std::mutex> lock(controllerMutex);
 
     controllers[wcid - 1].reset();
 
-    Log::info("Controller '%d' disconnected", wcid);
+    if (removeClient(wcid))
+    {
+        Log::info("Controller '%d' disconnected", wcid);
+    }
+
+    else
+    {
+        Log::error("Failed to remove controller");
+    }
 }
 
 void Dongle::handleControllerPair(Bytes address, const Bytes &packet)
 {
+    // Ignore invalid packets
     if (packet.size() < sizeof(ReservedFrame))
     {
         return;
@@ -117,24 +117,20 @@ void Dongle::handleControllerPair(Bytes address, const Bytes &packet)
         return;
     }
 
-    if (!pairClient(address))
+    std::lock_guard<std::mutex> lock(controllerMutex);
+
+    if (pairClient(address) && setPairingStatus(false))
+    {
+        Log::debug(
+            "Controller paired: %s",
+            Log::formatBytes(address).c_str()
+        );
+    }
+
+    else
     {
         Log::error("Failed to pair controller");
-
-        return;
     }
-
-    if (!setPairingStatus(false))
-    {
-        Log::error("Failed to disable pairing");
-
-        return;
-    }
-
-    Log::debug(
-        "Controller paired: %s",
-        Log::formatBytes(address).c_str()
-    );
 }
 
 void Dongle::handleControllerPacket(uint8_t wcid, const Bytes &packet)
@@ -154,14 +150,14 @@ void Dongle::handleControllerPacket(uint8_t wcid, const Bytes &packet)
     // Skip 2 bytes of padding
     const Bytes data(packet, sizeof(QosFrame) + sizeof(uint16_t));
 
+    std::lock_guard<std::mutex> lock(controllerMutex);
+
     if (!controllers[wcid - 1])
     {
         Log::error("Packet for unconnected controller '%d'", wcid);
-
-        return;
     }
 
-    if (!controllers[wcid - 1]->handlePacket(data))
+    else if (!controllers[wcid - 1]->handlePacket(data))
     {
         Log::error("Error handling packet for controller '%d'", wcid);
     }
@@ -196,7 +192,35 @@ void Dongle::handleWlanPacket(const Bytes &packet)
     uint8_t type = wlanFrame->frameControl.type;
     uint8_t subtype = wlanFrame->frameControl.subtype;
 
-    if (type == MT_WLAN_DATA && subtype == MT_WLAN_QOS_DATA)
+    if (type == MT_WLAN_MGMT)
+    {
+        switch (subtype)
+        {
+            case MT_WLAN_ASSOC_REQ:
+                handleControllerConnect(source);
+                break;
+
+            // Only kept for compatibility with 1537 controllers
+            // They associate, disassociate and associate again during pairing
+            // Disassociations happen without triggering EVT_CLIENT_LOST
+            case MT_WLAN_DISASSOC:
+                handleControllerDisconnect(rxWi->wcid);
+                break;
+
+            // Reserved frames are used for different purposes
+            // Most of them are yet to be discovered
+            case MT_WLAN_RESERVED:
+                const Bytes innerPacket(
+                    packet,
+                    sizeof(RxWi) + sizeof(WlanFrame)
+                );
+
+                handleControllerPair(source, innerPacket);
+                break;
+        }
+    }
+
+    else if (type == MT_WLAN_DATA && subtype == MT_WLAN_QOS_DATA)
     {
         const Bytes innerPacket(
             packet,
@@ -204,38 +228,6 @@ void Dongle::handleWlanPacket(const Bytes &packet)
         );
 
         handleControllerPacket(rxWi->wcid, innerPacket);
-
-        return;
-    }
-
-    if (type != MT_WLAN_MGMT)
-    {
-        return;
-    }
-
-    if (subtype == MT_WLAN_ASSOC_REQ)
-    {
-        handleControllerConnect(source);
-    }
-
-    // Only kept for compatibility with 1537 controllers
-    // They associate, disassociate and associate again during pairing
-    // Disassociations happen without triggering EVT_CLIENT_LOST
-    else if (subtype == MT_WLAN_DISASSOC)
-    {
-        handleControllerDisconnect(rxWi->wcid);
-    }
-
-    // Reserved frames are used for different purposes
-    // Most of them are yet to be discovered
-    else if (subtype == MT_WLAN_RESERVED)
-    {
-        const Bytes innerPacket(
-            packet,
-            sizeof(RxWi) + sizeof(WlanFrame)
-        );
-
-        handleControllerPair(source, innerPacket);
     }
 }
 
@@ -254,29 +246,28 @@ void Dongle::handleBulkData(const Bytes &data)
     if (rxInfo->port == CPU_RX_PORT)
     {
         const RxInfoCommand *info = data.toStruct<RxInfoCommand>();
-        std::lock_guard<std::mutex> lock(handlePacketMutex);
 
-        if (info->eventType == EVT_PACKET_RX)
+        switch (info->eventType)
         {
-            handleWlanPacket(packet);
-        }
+            case EVT_BUTTON_PRESS:
+                // Setting the pairing status doesn't require locking the mutex
+                setPairingStatus(true);
+                break;
 
-        else if (info->eventType == EVT_CLIENT_LOST)
-        {
-            // Packet is guaranteed not to be empty
-            handleControllerDisconnect(packet[0]);
-        }
+            case EVT_PACKET_RX:
+                handleWlanPacket(packet);
+                break;
 
-        else if (info->eventType == EVT_BUTTON_PRESS)
-        {
-            setPairingStatus(true);
+            case EVT_CLIENT_LOST:
+                // Packet is guaranteed not to be empty
+                handleControllerDisconnect(packet[0]);
+                break;
         }
     }
 
     else if (rxInfo->port == WLAN_PORT)
     {
         const RxInfoPacket *info = data.toStruct<RxInfoPacket>();
-        std::lock_guard<std::mutex> lock(handlePacketMutex);
 
         if (info->is80211)
         {
