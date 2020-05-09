@@ -57,31 +57,30 @@ void Dongle::handleControllerConnect(Bytes address)
 
     uint8_t wcid = associateClient(address);
 
-    if (wcid > 0)
-    {
-        GipDevice::SendPacket sendPacket = std::bind(
-            &Dongle::sendClientPacket,
-            this,
-            wcid,
-            address,
-            std::placeholders::_1
-        );
-
-        controllers[wcid - 1].reset(new Controller(sendPacket));
-
-        Log::info("Controller '%d' connected", wcid);
-    }
-
-    else
+    if (wcid == 0)
     {
         Log::error("Failed to associate controller");
+
+        return;
     }
+
+    GipDevice::SendPacket sendPacket = std::bind(
+        &Dongle::sendClientPacket,
+        this,
+        wcid,
+        address,
+        std::placeholders::_1
+    );
+
+    controllers[wcid - 1].reset(new Controller(sendPacket));
+
+    Log::info("Controller '%d' connected", wcid);
 }
 
 void Dongle::handleControllerDisconnect(uint8_t wcid)
 {
     // Ignore invalid WCIDs
-    if (wcid < 1 || wcid > MT_WCID_COUNT)
+    if (wcid == 0 || wcid > MT_WCID_COUNT)
     {
         return;
     }
@@ -90,15 +89,14 @@ void Dongle::handleControllerDisconnect(uint8_t wcid)
 
     controllers[wcid - 1].reset();
 
-    if (removeClient(wcid))
-    {
-        Log::info("Controller '%d' disconnected", wcid);
-    }
-
-    else
+    if (!removeClient(wcid))
     {
         Log::error("Failed to remove controller");
+
+        return;
     }
+
+    Log::info("Controller '%d' disconnected", wcid);
 }
 
 void Dongle::handleControllerPair(Bytes address, const Bytes &packet)
@@ -119,24 +117,30 @@ void Dongle::handleControllerPair(Bytes address, const Bytes &packet)
 
     std::lock_guard<std::mutex> lock(controllerMutex);
 
-    if (pairClient(address) && setPairingStatus(false))
-    {
-        Log::debug(
-            "Controller paired: %s",
-            Log::formatBytes(address).c_str()
-        );
-    }
-
-    else
+    if (!pairClient(address))
     {
         Log::error("Failed to pair controller");
+
+        return;
     }
+
+    if (!setPairingStatus(false))
+    {
+        Log::error("Failed to disable pairing");
+
+        return;
+    }
+
+    Log::debug(
+        "Controller paired: %s",
+        Log::formatBytes(address).c_str()
+    );
 }
 
 void Dongle::handleControllerPacket(uint8_t wcid, const Bytes &packet)
 {
     // Invalid WCID
-    if (wcid < 1 || wcid > MT_WCID_COUNT)
+    if (wcid == 0 || wcid > MT_WCID_COUNT)
     {
         return;
     }
