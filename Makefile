@@ -18,10 +18,10 @@ FIRMWARE_HASH := 48084d9fa53b9bb04358f3bb127b7495dc8f7bb0b3ca1437bd24ef2b6eabdf6
 
 PREFIX := /usr/local
 BINDIR := $(PREFIX)/bin
-UDEVDIR := /lib/udev/rules.d
-MODLDIR := /lib/modules-load.d
-MODPDIR := /lib/modprobe.d
-SYSDDIR := /lib/systemd/system
+UDEVDIR := /etc/udev/rules.d
+MODLDIR := /etc/modules-load.d
+MODPDIR := /etc/modprobe.d
+SYSDDIR := /etc/systemd/system
 
 .PHONY: all
 all: xow
