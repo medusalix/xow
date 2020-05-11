@@ -33,8 +33,8 @@ namespace Log
 
     inline void init()
     {
-        // Disable buffering
-        setbuf(stdout, nullptr);
+        // Switch to line buffering
+        setlinebuf(stdout);
     }
 
     template<typename... Args>
@@ -57,6 +57,6 @@ namespace Log
     inline void error(std::string message, Args... args)
     {
         std::string output = formatLog("ERROR", message);
-        std::fprintf(stdout, output.c_str(), args...);
+        std::fprintf(stderr, output.c_str(), args...);
     }
 }
