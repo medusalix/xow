@@ -40,7 +40,7 @@ private:
     void inputReceived(const InputData *input) override;
 
     /* Device initialization */
-    void initInput(uint16_t vendorId, uint16_t productId);
+    void initInput(const AnnounceData *announce);
 
     /* OS interface */
     void inputFeedbackReceived(

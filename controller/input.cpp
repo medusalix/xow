@@ -97,16 +97,14 @@ void InputDevice::addFeedback(uint16_t code)
     }
 }
 
-void InputDevice::create(
-    uint16_t vendorId,
-    uint16_t productId,
-    std::string name
-) {
+void InputDevice::create(std::string name, DeviceConfig config)
+{
     uinput_setup setup = {};
 
     setup.id.bustype = BUS_USB;
-    setup.id.vendor = vendorId;
-    setup.id.product = productId;
+    setup.id.vendor = config.vendorId;
+    setup.id.product = config.productId;
+    setup.id.version = config.version;
     setup.ff_effects_max = INPUT_MAX_FF_EFFECTS;
 
     std::copy(name.begin(), name.end(), std::begin(setup.name));

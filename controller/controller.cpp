@@ -19,8 +19,15 @@
 #include "controller.h"
 #include "../utils/log.h"
 
+#include <cstdlib>
 #include <cmath>
 #include <linux/input.h>
+
+// Configuration for the compatibility mode
+#define COMPATIBILITY_ENV "XOW_COMPATIBILITY"
+#define COMPATIBILITY_NAME "Microsoft X-Box 360 pad"
+#define COMPATIBILITY_PID 0x028e
+#define COMPATIBILITY_VERSION 0x0104
 
 // Accessories use IDs greater than zero
 #define DEVICE_ID_CONTROLLER 0
@@ -67,7 +74,7 @@ void Controller::deviceAnnounced(uint8_t id, const AnnounceData *announce)
         announce->hardwareVersion.revision
     );
 
-    initInput(announce->vendorId, announce->productId);
+    initInput(announce);
 }
 
 void Controller::statusReceived(uint8_t id, const StatusData *status)
@@ -124,7 +131,7 @@ void Controller::inputReceived(const InputData *input)
     inputDevice.report();
 }
 
-void Controller::initInput(uint16_t vendorId, uint16_t productId)
+void Controller::initInput(const AnnounceData *announce)
 {
     LedModeData ledMode = {};
 
@@ -196,7 +203,31 @@ void Controller::initInput(uint16_t vendorId, uint16_t productId)
     inputDevice.addAxis(ABS_HAT0X, dpadConfig);
     inputDevice.addAxis(ABS_HAT0Y, dpadConfig);
     inputDevice.addFeedback(FF_RUMBLE);
-    inputDevice.create(vendorId, productId, DEVICE_NAME);
+
+    InputDevice::DeviceConfig deviceConfig = {};
+
+    deviceConfig.vendorId = announce->vendorId;
+
+    if (std::getenv(COMPATIBILITY_ENV))
+    {
+        // Certain games compare the gamepad's name with a hardcoded value
+        // Pretending to be an Xbox 360 controller fixes these problems
+        deviceConfig.productId = COMPATIBILITY_PID;
+        deviceConfig.version = COMPATIBILITY_VERSION;
+
+        inputDevice.create(COMPATIBILITY_NAME, deviceConfig);
+    }
+
+    else
+    {
+        uint16_t version = (announce->firmwareVersion.major << 8) |
+            announce->firmwareVersion.minor;
+
+        deviceConfig.productId = announce->productId;
+        deviceConfig.version = version;
+
+        inputDevice.create(DEVICE_NAME, deviceConfig);
+    }
 }
 
 void Controller::inputFeedbackReceived(ff_effect effect, uint16_t gain)

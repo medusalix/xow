@@ -134,6 +134,9 @@ sudo systemctl kill -s SIGUSR1 xow
 
 ### Configuration issues
 
+- Certain games do not detect wireless controllers
+    - Enable the *compatibility mode* in the service configuration, reload the `systemd` daemon and restart the service.
+    Controllers connected to the dongle will appear as Xbox 360 controllers.
 - Buttons/triggers/sticks are mapped incorrectly
     - Try the options listed on [this page](https://wiki.archlinux.org/index.php/Gamepad#Setting_up_deadzones_and_calibration) to remap your inputs.
 - Input from the sticks is jumping around

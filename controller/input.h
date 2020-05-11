@@ -45,17 +45,19 @@ public:
         int32_t fuzz, flat;
     };
 
+    struct DeviceConfig
+    {
+        uint16_t vendorId, productId;
+        uint16_t version;
+    };
+
     InputDevice(FeedbackReceived feedbackReceived);
     virtual ~InputDevice();
 
     void addKey(uint16_t code);
     void addAxis(uint16_t code, AxisConfig config);
     void addFeedback(uint16_t code);
-    void create(
-        uint16_t vendorId,
-        uint16_t productId,
-        std::string name
-    );
+    void create(std::string name, DeviceConfig config);
 
     inline void setKey(uint16_t key, bool pressed)
     {
