@@ -887,7 +887,7 @@ uint8_t Mt76::associateClient(Bytes address)
     // Wait for acknowledgement
     // Ignore wireless client identifier (WCID)
     txWi.phyType = MT_PHY_TYPE_OFDM;
-    txWi.ack = 1;
+    txWi.ack = true;
     txWi.wcid = 0xff;
     txWi.mpduByteCount = sizeof(WlanFrame) + sizeof(AssociationResponseFrame);
 
@@ -998,7 +998,7 @@ bool Mt76::pairClient(Bytes address)
     // Wait for acknowledgement
     // Ignore wireless client index (WCID)
     txWi.phyType = MT_PHY_TYPE_OFDM;
-    txWi.ack = 1;
+    txWi.ack = true;
     txWi.wcid = 0xff;
     txWi.mpduByteCount = sizeof(WlanFrame) + data.size();
 
@@ -1043,7 +1043,7 @@ bool Mt76::sendClientPacket(
     // OFDM transmission method
     // Wait for acknowledgement
     txWi.phyType = MT_PHY_TYPE_OFDM;
-    txWi.ack = 1;
+    txWi.ack = true;
     txWi.mpduByteCount = sizeof(WlanFrame) + sizeof(QosFrame) + packet.size();
 
     WlanFrame wlanFrame = {};
@@ -1052,7 +1052,7 @@ bool Mt76::sendClientPacket(
     // Duration is the time required to transmit (μs)
     wlanFrame.frameControl.type = MT_WLAN_DATA;
     wlanFrame.frameControl.subtype = MT_WLAN_QOS_DATA;
-    wlanFrame.frameControl.fromDs = 1;
+    wlanFrame.frameControl.fromDs = true;
     wlanFrame.duration = 144;
 
     address.copy(wlanFrame.destination);
@@ -1124,8 +1124,8 @@ bool Mt76::sendWlanPacket(const Bytes &data)
     // Enhanced distributed channel access (EDCA)
     info.port = WLAN_PORT;
     info.infoType = NORMAL_PACKET;
-    info.is80211 = 1;
-    info.wiv = 1;
+    info.is80211 = true;
+    info.wiv = true;
     info.qsel = MT_QSEL_EDCA;
     info.length = length + padding;
 
@@ -1370,8 +1370,8 @@ bool Mt76::loadFirmware()
 
     DmaConfig config = {};
 
-    config.props.rxBulkEnabled = 1;
-    config.props.txBulkEnabled = 1;
+    config.props.rxBulkEnabled = true;
+    config.props.txBulkEnabled = true;
 
     // Configure direct memory access (DMA)
     // Enable FCE and packet DMA
@@ -1485,8 +1485,8 @@ bool Mt76::writeBeacon(bool pairing)
     // Generate beacon timestamp
     // Use hardware sequence control
     txWi.phyType = MT_PHY_TYPE_OFDM;
-    txWi.timestamp = 1;
-    txWi.nseq = 1;
+    txWi.timestamp = true;
+    txWi.nseq = true;
     txWi.mpduByteCount = sizeof(WlanFrame) + sizeof(BeaconFrame) + data.size();
 
     WlanFrame wlanFrame = {};
@@ -1520,10 +1520,10 @@ bool Mt76::writeBeacon(bool pairing)
     // Set TSF timer to AP mode
     // Activate beacon transmission
     config.value = controlRead(MT_BEACON_TIME_CFG);
-    config.props.tsfTimerEnabled = 1;
-    config.props.tbttTimerEnabled = 1;
+    config.props.tsfTimerEnabled = true;
+    config.props.tbttTimerEnabled = true;
     config.props.tsfSyncMode = 3;
-    config.props.transmitBeacon = 1;
+    config.props.transmitBeacon = true;
 
     if (!burstWrite(MT_BEACON_BASE, out))
     {
@@ -1735,7 +1735,7 @@ Bytes Mt76::efuseRead(uint8_t address, uint8_t length)
     control.value = controlRead(MT_EFUSE_CTRL);
     control.props.mode = 0;
     control.props.addressIn = address & 0xf0;
-    control.props.kick = 1;
+    control.props.kick = true;
 
     controlWrite(MT_EFUSE_CTRL, control.value);
 
