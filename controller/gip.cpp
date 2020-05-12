@@ -133,18 +133,17 @@ bool GipDevice::handlePacket(const Bytes &packet)
 bool GipDevice::setPowerMode(uint8_t id, PowerMode mode)
 {
     Frame frame = {};
-    const Bytes data = { mode };
 
     frame.command = CMD_POWER_MODE;
     frame.deviceId = id;
     frame.type = TYPE_REQUEST;
     frame.sequence = getSequence();
-    frame.length = data.size();
+    frame.length = sizeof(uint8_t);
 
     Bytes out;
 
     out.append(frame);
-    out.append(data);
+    out.append(static_cast<uint8_t>(mode));
 
     return sendPacket(out);
 }
@@ -186,40 +185,40 @@ bool GipDevice::setLedMode(LedModeData mode)
 bool GipDevice::requestSerialNumber()
 {
     Frame frame = {};
-    const Bytes data = { 0x04 };
 
     frame.command = CMD_SERIAL_NUM;
     frame.type = TYPE_REQUEST | TYPE_ACK;
     frame.sequence = getSequence();
-    frame.length = data.size();
+    frame.length = sizeof(uint8_t);
 
     Bytes out;
 
+    // The purpose of other values is still to be discovered
     out.append(frame);
-    out.append(data);
+    out.append(static_cast<uint8_t>(0x04));
 
     return sendPacket(out);
 }
 
-bool GipDevice::acknowledgePacket(Frame packet)
+bool GipDevice::acknowledgePacket(Frame frame)
 {
-    Frame frame = {};
+    Frame header = {};
 
-    frame.command = CMD_ACKNOWLEDGE;
-    frame.deviceId = packet.deviceId;
+    header.command = CMD_ACKNOWLEDGE;
+    header.deviceId = frame.deviceId;
+    header.type = TYPE_REQUEST;
+    header.sequence = frame.sequence;
+    header.length = sizeof(header) + 5;
+
     frame.type = TYPE_REQUEST;
-    frame.sequence = packet.sequence;
-    frame.length = sizeof(frame) + 5;
-
-    packet.type = TYPE_REQUEST;
-    packet.sequence = packet.length;
-    packet.length = 0;
+    frame.sequence = frame.length;
+    frame.length = 0;
 
     Bytes out;
 
-    out.append(frame);
+    out.append(header);
     out.pad(1);
-    out.append(packet);
+    out.append(frame);
     out.pad(4);
 
     return sendPacket(out);

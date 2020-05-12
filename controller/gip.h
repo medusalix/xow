@@ -194,7 +194,7 @@ protected:
     bool requestSerialNumber();
 
 private:
-    bool acknowledgePacket(Frame packet);
+    bool acknowledgePacket(Frame frame);
     uint8_t getSequence(bool accessory = false);
 
     uint8_t sequence = 0x01;
