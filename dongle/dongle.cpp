@@ -19,8 +19,6 @@
 #include "dongle.h"
 #include "../utils/log.h"
 
-#include <functional>
-
 Dongle::Dongle(
     std::unique_ptr<UsbDevice> usbDevice
 ) : Mt76(std::move(usbDevice)), stopThreads(false)
@@ -196,18 +194,18 @@ void Dongle::handleWlanPacket(const Bytes &packet)
     uint8_t type = wlanFrame->frameControl.type;
     uint8_t subtype = wlanFrame->frameControl.subtype;
 
-    if (type == MT_WLAN_MGMT)
+    if (type == MT_WLAN_MANAGEMENT)
     {
         switch (subtype)
         {
-            case MT_WLAN_ASSOC_REQ:
+            case MT_WLAN_ASSOCIATION_REQ:
                 handleControllerConnect(source);
                 break;
 
             // Only kept for compatibility with 1537 controllers
             // They associate, disassociate and associate again during pairing
             // Disassociations happen without triggering EVT_CLIENT_LOST
-            case MT_WLAN_DISASSOC:
+            case MT_WLAN_DISASSOCIATION:
                 handleControllerDisconnect(rxWi->wcid);
                 break;
 

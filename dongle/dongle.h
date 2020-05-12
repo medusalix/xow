@@ -23,8 +23,9 @@
 
 #include <cstdint>
 #include <array>
-#include <mutex>
+#include <atomic>
 #include <thread>
+#include <mutex>
 
 // Microsoft's vendor ID
 #define DONGLE_VID 0x045e
