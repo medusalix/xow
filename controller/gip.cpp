@@ -76,42 +76,43 @@ bool GipDevice::handlePacket(const Bytes &packet)
         return false;
     }
 
+    const Bytes data(packet, sizeof(Frame));
+
+    // Use the data size instead of the frame's length attribute
+    // The length field doesn't include any additional padding
+    // That's why we only check for a minimum data size
     if (
         frame->command == CMD_ANNOUNCE &&
-        frame->length == sizeof(AnnounceData)
+        data.size() >= sizeof(AnnounceData)
     ) {
         deviceAnnounced(
             frame->deviceId,
-            packet.toStruct<AnnounceData>(sizeof(Frame))
+            data.toStruct<AnnounceData>()
         );
     }
 
     else if (
         frame->command == CMD_STATUS &&
-        frame->length == sizeof(StatusData)
+        data.size() >= sizeof(StatusData)
     ) {
         statusReceived(
             frame->deviceId,
-            packet.toStruct<StatusData>(sizeof(Frame))
+            data.toStruct<StatusData>()
         );
     }
 
     else if (
         frame->command == CMD_GUIDE_BTN &&
-        frame->length == sizeof(GuideButtonData)
+        data.size() >= sizeof(GuideButtonData)
     ) {
-        guideButtonPressed(
-            packet.toStruct<GuideButtonData>(sizeof(Frame))
-        );
+        guideButtonPressed(data.toStruct<GuideButtonData>());
     }
 
     else if (
         frame->command == CMD_SERIAL_NUM &&
-        frame->length == sizeof(SerialData)
+        data.size() >= sizeof(SerialData)
     ) {
-        serialNumberReceived(
-            packet.toStruct<SerialData>(sizeof(Frame))
-        );
+        serialNumberReceived(data.toStruct<SerialData>());
     }
 
     // Elite controllers send a larger input packet
@@ -119,11 +120,9 @@ bool GipDevice::handlePacket(const Bytes &packet)
     // The "non-remapped" input is appended to the packet
     else if (
         frame->command == CMD_INPUT &&
-        frame->length >= sizeof(InputData)
+        data.size() >= sizeof(InputData)
     ) {
-        inputReceived(
-            packet.toStruct<InputData>(sizeof(Frame))
-        );
+        inputReceived(data.toStruct<InputData>());
     }
 
     // Ignore any unknown packets
