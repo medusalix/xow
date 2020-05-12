@@ -819,9 +819,9 @@ Mt76::Mt76(
         throw Mt76Exception("Failed to init registers");
     }
 
-    if (!initGain(0, macAddress))
+    if (!sendFirmwareCommand(FW_MAC_ADDRESS_SET, macAddress))
     {
-        throw Mt76Exception("Failed to init gain");
+        throw Mt76Exception("Failed to set MAC address");
     }
 
     // Reset necessary for reliable WLAN associations
@@ -913,7 +913,7 @@ uint8_t Mt76::associateClient(Bytes address)
     out.append(wlanFrame);
     out.append(associationFrame);
 
-    const Bytes gain = {
+    const Bytes wcidData = {
         static_cast<uint8_t>(wcid - 1), 0x00, 0x00, 0x00,
         0x40, 0x1f, 0x00, 0x00
     };
@@ -926,9 +926,9 @@ uint8_t Mt76::associateClient(Bytes address)
         return 0;
     }
 
-    if (!initGain(1, gain))
+    if (!sendFirmwareCommand(FW_CLIENT_ADD, wcidData))
     {
-        Log::error("Failed to init gain");
+        Log::error("Failed to add client");
 
         return 0;
     }
@@ -953,16 +953,16 @@ uint8_t Mt76::associateClient(Bytes address)
 bool Mt76::removeClient(uint8_t wcid)
 {
     const Bytes emptyAddress = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-    const Bytes gain = {
+    const Bytes wcidData = {
         static_cast<uint8_t>(wcid - 1), 0x00, 0x00, 0x00
     };
 
     // Remove WCID from connected clients
     connectedClients &= ~BIT(wcid - 1);
 
-    if (!initGain(2, gain))
+    if (!sendFirmwareCommand(FW_CLIENT_REMOVE, wcidData))
     {
-        Log::error("Failed to reset gain");
+        Log::error("Failed to remove client");
 
         return false;
     }
@@ -1340,9 +1340,9 @@ bool Mt76::initChannels()
         values.append(channel);
     }
 
-    if (!initGain(7, values))
+    if (!sendFirmwareCommand(FW_CHANNEL_CANDIDATES_SET, values))
     {
-        Log::error("Failed to send channel candidates");
+        Log::error("Failed to set channel candidates");
 
         return false;
     }
@@ -1661,16 +1661,16 @@ bool Mt76::configureChannel(
     return true;
 }
 
-bool Mt76::initGain(uint32_t index, const Bytes &values)
+bool Mt76::sendFirmwareCommand(McuFwCommand command, const Bytes &data)
 {
     Bytes out;
 
-    out.append(index);
-    out.append(values);
+    out.append(static_cast<uint32_t>(command));
+    out.append(data);
 
-    if (!sendCommand(CMD_INIT_GAIN_OP, out))
+    if (!sendCommand(CMD_INTERNAL_FW_OP, out))
     {
-        Log::error("Failed to init gain");
+        Log::error("Failed to send firmware command");
 
         return false;
     }

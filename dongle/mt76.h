@@ -84,7 +84,6 @@ protected:
 
     enum McuEventType
     {
-        /* Original values */
         EVT_CMD_DONE,
         EVT_CMD_ERROR,
         EVT_CMD_RETRY,
@@ -98,6 +97,15 @@ protected:
         EVT_PACKET_RX = 0x0c,
         // Lost connection to a client
         EVT_CLIENT_LOST = 0x0e,
+    };
+
+    // Specific to the dongle's firmware
+    enum McuFwCommand
+    {
+        FW_MAC_ADDRESS_SET = 0,
+        FW_CLIENT_ADD = 1,
+        FW_CLIENT_REMOVE = 2,
+        FW_CHANNEL_CANDIDATES_SET = 7,
     };
 
     enum McuCalibration
@@ -150,10 +158,10 @@ protected:
     {
         // Transmits a packet to a client
         CMD_PACKET_TX = 0,
-        /* Original values */
         CMD_FUN_SET_OP = 1,
         CMD_LOAD_CR = 2,
-        CMD_INIT_GAIN_OP = 3,
+        // Sends an internal command to the firmware
+        CMD_INTERNAL_FW_OP = 3,
         CMD_DYNC_VGA_OP = 6,
         CMD_TDLS_CH_SW = 7,
         CMD_BURST_WRITE = 8,
@@ -522,7 +530,7 @@ private:
         uint8_t txPower,
         bool enabled
     );
-    bool initGain(uint32_t index, const Bytes &values);
+    bool sendFirmwareCommand(McuFwCommand command, const Bytes &data);
     bool setLedMode(uint32_t index);
     bool sendCommand(McuCommand command, const Bytes &data);
 

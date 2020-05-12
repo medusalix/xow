@@ -152,7 +152,7 @@ Most of the reverse engineering was done by capturing the communication between 
 As no datasheets for this chip are publicly available, I have used datasheets of similar wireless radios for assistance.
 Special thanks to the authors of OpenWrt's [`mt76`](https://github.com/openwrt/mt76) kernel driver.
 It would have been impossible for me to create this driver without `mt76`'s source code.
-If anyone has a greater understanding of the GIP or the weird quirks I had to add to make the driver work (like `initGain`), please contact me.
+If anyone has a greater understanding of the GIP or the weird quirks I had to add to make the driver work, please contact me.
 
 ## License
 
