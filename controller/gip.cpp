@@ -78,11 +78,10 @@ bool GipDevice::handlePacket(const Bytes &packet)
 
     const Bytes data(packet, sizeof(Frame));
 
-    // Use the data size instead of the frame's length attribute
-    // The length field doesn't include any additional padding
-    // That's why we only check for a minimum data size
+    // Data is 32-bit aligned, check for minimum size
     if (
         frame->command == CMD_ANNOUNCE &&
+        frame->length == sizeof(AnnounceData) &&
         data.size() >= sizeof(AnnounceData)
     ) {
         deviceAnnounced(
@@ -93,6 +92,7 @@ bool GipDevice::handlePacket(const Bytes &packet)
 
     else if (
         frame->command == CMD_STATUS &&
+        frame->length == sizeof(StatusData) &&
         data.size() >= sizeof(StatusData)
     ) {
         statusReceived(
@@ -103,6 +103,7 @@ bool GipDevice::handlePacket(const Bytes &packet)
 
     else if (
         frame->command == CMD_GUIDE_BTN &&
+        frame->length == sizeof(GuideButtonData) &&
         data.size() >= sizeof(GuideButtonData)
     ) {
         guideButtonPressed(data.toStruct<GuideButtonData>());
@@ -110,6 +111,7 @@ bool GipDevice::handlePacket(const Bytes &packet)
 
     else if (
         frame->command == CMD_SERIAL_NUM &&
+        frame->length == sizeof(SerialData) &&
         data.size() >= sizeof(SerialData)
     ) {
         serialNumberReceived(data.toStruct<SerialData>());
@@ -120,6 +122,7 @@ bool GipDevice::handlePacket(const Bytes &packet)
     // The "non-remapped" input is appended to the packet
     else if (
         frame->command == CMD_INPUT &&
+        frame->length >= sizeof(InputData) &&
         data.size() >= sizeof(InputData)
     ) {
         inputReceived(data.toStruct<InputData>());
