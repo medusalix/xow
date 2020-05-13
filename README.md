@@ -54,7 +54,7 @@ The following Xbox One controllers are currently compatible with the driver:
 
 - Arch Linux ([master](https://aur.archlinux.org/packages/xow-git), [stable](https://aur.archlinux.org/packages/xow))
 - Debian ([sid](https://packages.debian.org/sid/xow))
-- NixOS ([Nixpkgs](https://nixos.wiki/wiki/Nixpkgs))
+- NixOS ([unstable](https://nixos.org/nixos/packages.html?attr=xow&channel=nixpkgs-unstable))
 
 ### Third-party hardware
 
