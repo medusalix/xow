@@ -1902,11 +1902,11 @@ Bytes Mt76::efuseRead(uint8_t address, uint8_t length)
 {
     EfuseControl control = {};
 
-    // Set address to read from
+    // Read data in blocks of 4 * 32 bits
     // Kick-off read
     control.value = controlRead(MT_EFUSE_CTRL);
     control.props.mode = MT_EE_READ;
-    control.props.addressIn = address & 0xf0;
+    control.props.addressIn = address & ~0x0f;
     control.props.kick = true;
 
     controlWrite(MT_EFUSE_CTRL, control.value);
@@ -1917,6 +1917,7 @@ Bytes Mt76::efuseRead(uint8_t address, uint8_t length)
 
     for (uint8_t i = 0; i < length; i += sizeof(uint32_t))
     {
+        // Block data offset (multiple of 32 bits)
         uint8_t offset = (address & 0x0c) + i;
         uint32_t value = controlRead(MT_EFUSE_DATA_BASE + offset);
         uint8_t remaining = length - i;
