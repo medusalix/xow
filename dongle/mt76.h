@@ -108,6 +108,23 @@ protected:
         FW_CHANNEL_CANDIDATES_SET = 7,
     };
 
+    enum McuChannelBandwidth
+    {
+        MT_CH_BW_20,
+        MT_CH_BW_40,
+        MT_CH_BW_80,
+    };
+
+    enum McuChannelGroup
+    {
+        MT_CH_5G_JAPAN,
+        MT_CH_5G_UNII_1,
+        MT_CH_5G_UNII_2,
+        MT_CH_5G_UNII_2E_1,
+        MT_CH_5G_UNII_2E_2,
+        MT_CH_5G_UNII_3,
+    };
+
     enum McuCalibration
     {
         MCU_CAL_R = 1,
@@ -125,6 +142,12 @@ protected:
         MCU_CAL_RXIQC_FD,
         MCU_CAL_PWRON,
         MCU_CAL_TX_SHAPING,
+    };
+
+    enum McuEepromMode
+    {
+        MT_EE_READ,
+        MT_EE_PHYSICAL_READ,
     };
 
     enum McuCrMode
@@ -421,17 +444,15 @@ protected:
     struct ChannelConfigData
     {
         uint8_t channel;
-        uint8_t scan;
-        uint8_t bandwidth;
         uint8_t padding1;
+        uint16_t padding2;
         uint16_t txRxSetting;
-        uint8_t externalChannel;
-        uint8_t padding2;
-        uint64_t padding3;
-        uint8_t group;
+        uint16_t padding3;
+        uint64_t padding4;
+        uint8_t bandwidth;
         uint8_t txPower;
-        uint8_t enabled;
-        uint8_t padding4;
+        uint8_t scan;
+        uint8_t unknown;
     } __attribute__((packed));
 
     union EfuseControl
@@ -526,10 +547,12 @@ private:
     bool calibrate(McuCalibration calibration, uint32_t value);
     bool configureChannel(
         uint8_t channel,
-        uint8_t group,
-        uint8_t txPower,
-        bool enabled
+        McuChannelBandwidth bandwidth,
+        bool scan
     );
+    uint8_t getChannelPower(uint8_t channel);
+    uint8_t getChannelGroup(uint8_t channel);
+    uint8_t getChannelSubgroup(uint8_t channel);
     bool sendFirmwareCommand(McuFwCommand command, const Bytes &data);
     bool setLedMode(uint32_t index);
     bool sendCommand(McuCommand command, const Bytes &data);

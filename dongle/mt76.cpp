@@ -774,6 +774,8 @@
 #define MT_EE_USAGE_MAP_START 0x1e0
 #define MT_EE_USAGE_MAP_END 0x1fc
 
+#define MT_EE_TX_POWER_GROUP_SIZE_5G 5
+
 /* The defines below belong to this project */
 
 // Power-on RF patch
@@ -790,6 +792,17 @@
 
 // Register offset in memory
 #define MT_REGISTER_OFFSET 0x410000
+
+// Subgroups for channel power offsets
+#define MT_CH_2G_LOW 0x01
+#define MT_CH_2G_MID 0x02
+#define MT_CH_2G_HIGH 0x03
+#define MT_CH_5G_LOW 0x01
+#define MT_CH_5G_HIGH 0x02
+
+// Channel power limits (0 dB to 23.5 dB)
+#define MT_CH_POWER_MIN 0x00
+#define MT_CH_POWER_MAX 0x2f
 
 extern const uint8_t _binary_firmware_bin_start[];
 extern const uint8_t _binary_firmware_bin_end[];
@@ -1308,19 +1321,21 @@ void Mt76::calibrateCrystal()
 
 bool Mt76::initChannels()
 {
-    // Configure and enable/disable each individual channel
-    configureChannel(0x01, 0x00, 0x1f, true);
-    configureChannel(0x06, 0x00, 0x20, true);
-    configureChannel(0x0b, 0x00, 0x21, true);
-    configureChannel(0x24, 0x01, 0x2f, true);
-    configureChannel(0x28, 0x01, 0x2f, false);
-    configureChannel(0x2c, 0x01, 0x2f, true);
-    configureChannel(0x30, 0x01, 0x2f, false);
-    configureChannel(0x95, 0x02, 0x29, true);
-    configureChannel(0x99, 0x02, 0x29, false);
-    configureChannel(0x9d, 0x02, 0x28, true);
-    configureChannel(0xa1, 0x02, 0x28, false);
-    configureChannel(0xa5, 0x02, 0x28, false);
+    // Configure each individual channel
+    // Power for channels 0x24 - 0x30 gets increased by the original driver
+    // It sometimes even exceeds the absolute maximum of 0x2f
+    configureChannel(0x01, MT_CH_BW_20, true);
+    configureChannel(0x06, MT_CH_BW_20, true);
+    configureChannel(0x0b, MT_CH_BW_20, true);
+    configureChannel(0x24, MT_CH_BW_40, true);
+    configureChannel(0x28, MT_CH_BW_40, false);
+    configureChannel(0x2c, MT_CH_BW_40, true);
+    configureChannel(0x30, MT_CH_BW_40, false);
+    configureChannel(0x95, MT_CH_BW_80, true);
+    configureChannel(0x99, MT_CH_BW_80, false);
+    configureChannel(0x9d, MT_CH_BW_80, true);
+    configureChannel(0xa1, MT_CH_BW_80, false);
+    configureChannel(0xa5, MT_CH_BW_80, false);
 
     // List of wireless channel candidates
     const Bytes candidates = {
@@ -1631,21 +1646,20 @@ bool Mt76::calibrate(McuCalibration calibration, uint32_t value)
 
 bool Mt76::configureChannel(
     uint8_t channel,
-    uint8_t group,
-    uint8_t txPower,
-    bool enabled
+    McuChannelBandwidth bandwidth,
+    bool scan
 ) {
     ChannelConfigData config = {};
 
     // Select TX and RX stream 1
-    // Set transmit power (from 0x00 to 0x2f)
-    // Set channel group (unknown purpose)
-    // Enable or disable channel
+    // Set transmit power
+    // Set channel bandwidth
+    // Enable or disable scanning (purpose unknown)
     config.channel = channel;
     config.txRxSetting = 0x0101;
-    config.group = group;
-    config.txPower = txPower;
-    config.enabled = enabled;
+    config.bandwidth = bandwidth;
+    config.txPower = getChannelPower(channel);
+    config.scan = scan;
 
     Bytes out;
 
@@ -1658,7 +1672,165 @@ bool Mt76::configureChannel(
         return false;
     }
 
+    Log::debug("Channel %d, power: %d", channel, config.txPower);
+
     return true;
+}
+
+uint8_t Mt76::getChannelPower(uint8_t channel)
+{
+    // Channel group points to the entry in the power table
+    // Channel subgroup points to the power offset value
+    bool is24Ghz = channel <= 14;
+    uint8_t powerTableIndex = is24Ghz ?
+        MT_EE_TX_POWER_0_START_2G :
+        MT_EE_TX_POWER_0_START_5G;
+    uint8_t group = getChannelGroup(channel);
+    uint8_t subgroup = getChannelSubgroup(channel);
+
+    if (!is24Ghz)
+    {
+	    powerTableIndex += group * MT_EE_TX_POWER_GROUP_SIZE_5G;
+    }
+
+    // Each channel group has its own power table
+    Bytes entry = efuseRead(powerTableIndex, 8);
+
+    uint8_t index = is24Ghz ? 4 : 5;
+    uint8_t powerTarget = entry[index];
+    uint8_t powerOffset = entry[index + subgroup];
+
+    // Enable (1) or disable (0) offset
+    if ((powerOffset & BIT(7)) == 0)
+    {
+        return powerTarget;
+    }
+
+    // Decrease (0) or increase (1) power
+    bool sign = powerOffset & BIT(6);
+
+    // Power offset (in 0.5 dB steps)
+    int8_t offset = powerOffset & 0x3f;
+    int8_t power = sign ?
+        powerTarget + offset :
+        powerTarget - offset;
+
+    if (power < MT_CH_POWER_MIN)
+    {
+        return MT_CH_POWER_MIN;
+    }
+
+    if (power > MT_CH_POWER_MAX)
+    {
+        return MT_CH_POWER_MAX;
+    }
+
+    return power;
+}
+
+uint8_t Mt76::getChannelGroup(uint8_t channel)
+{
+	if (channel >= 184 && channel <= 196)
+    {
+		return MT_CH_5G_JAPAN;
+    }
+
+	if (channel <= 48)
+    {
+		return MT_CH_5G_UNII_1;
+    }
+
+	if (channel <= 64)
+    {
+		return MT_CH_5G_UNII_2;
+    }
+
+	if (channel <= 114)
+    {
+		return MT_CH_5G_UNII_2E_1;
+    }
+
+	if (channel <= 144)
+    {
+		return MT_CH_5G_UNII_2E_2;
+    }
+
+	return MT_CH_5G_UNII_3;
+}
+
+uint8_t Mt76::getChannelSubgroup(uint8_t channel)
+{
+    if (channel >= 192)
+    {
+		return MT_CH_5G_HIGH;
+    }
+
+	else if (channel >= 184)
+    {
+		return MT_CH_5G_LOW;
+    }
+
+    else if (channel < 6)
+    {
+		return MT_CH_2G_LOW;
+    }
+
+	else if (channel < 11)
+    {
+		return MT_CH_2G_MID;
+    }
+
+	else if (channel < 15)
+    {
+		return MT_CH_2G_HIGH;
+    }
+
+	else if (channel < 44)
+    {
+		return MT_CH_5G_LOW;
+    }
+
+	else if (channel < 52)
+    {
+		return MT_CH_5G_HIGH;
+    }
+
+	else if (channel < 58)
+    {
+		return MT_CH_5G_LOW;
+    }
+
+	else if (channel < 98)
+    {
+		return MT_CH_5G_HIGH;
+    }
+
+	else if (channel < 106)
+    {
+		return MT_CH_5G_LOW;
+    }
+
+	else if (channel < 116)
+    {
+		return MT_CH_5G_HIGH;
+    }
+
+	else if (channel < 130)
+    {
+		return MT_CH_5G_LOW;
+    }
+
+	else if (channel < 149)
+    {
+		return MT_CH_5G_HIGH;
+    }
+
+	else if (channel < 157)
+    {
+		return MT_CH_5G_LOW;
+    }
+
+    return MT_CH_5G_HIGH;
 }
 
 bool Mt76::sendFirmwareCommand(McuFwCommand command, const Bytes &data)
@@ -1733,7 +1905,7 @@ Bytes Mt76::efuseRead(uint8_t address, uint8_t length)
     // Set address to read from
     // Kick-off read
     control.value = controlRead(MT_EFUSE_CTRL);
-    control.props.mode = 0;
+    control.props.mode = MT_EE_READ;
     control.props.addressIn = address & 0xf0;
     control.props.kick = true;
 
@@ -1745,7 +1917,7 @@ Bytes Mt76::efuseRead(uint8_t address, uint8_t length)
 
     for (uint8_t i = 0; i < length; i += sizeof(uint32_t))
     {
-        uint8_t offset = i + (address & 0x0c);
+        uint8_t offset = (address & 0x0c) + i;
         uint32_t value = controlRead(MT_EFUSE_DATA_BASE + offset);
         uint8_t remaining = length - i;
         uint8_t size = remaining < sizeof(uint32_t)
