@@ -1284,38 +1284,38 @@ void Mt76::calibrateCrystal()
 {
     Bytes trim = efuseRead(MT_EE_XTAL_TRIM_2, sizeof(uint32_t));
     uint16_t value = (trim[3] << 8) | trim[2];
-	int8_t offset = value & 0x7f;
+    int8_t offset = value & 0x7f;
 
-	if ((value & 0xff) == 0xff)
+    if ((value & 0xff) == 0xff)
     {
-		offset = 0;
+        offset = 0;
     }
 
-	else if (value & 0x80)
+    else if (value & 0x80)
     {
-		offset = -offset;
+        offset = -offset;
     }
 
-	value >>= 8;
+    value >>= 8;
 
-	if (value == 0x00 || value == 0xff)
+    if (value == 0x00 || value == 0xff)
     {
-		trim = efuseRead(MT_EE_XTAL_TRIM_1, sizeof(uint32_t));
+        trim = efuseRead(MT_EE_XTAL_TRIM_1, sizeof(uint32_t));
         value = (trim[3] << 8) | trim[2];
-		value &= 0xff;
+        value &= 0xff;
 
-		if (value == 0x00 || value == 0xff)
+        if (value == 0x00 || value == 0xff)
         {
-			value = 0x14;
+            value = 0x14;
         }
-	}
+    }
 
-	value = (value & 0x7f) + offset;
+    value = (value & 0x7f) + offset;
 
     uint32_t ctrl = controlRead(MT_XO_CTRL5) & ~MT_XO_CTRL5_C2_VAL;
 
-	controlWrite(MT_XO_CTRL5, ctrl | (value << 8), MT_VEND_WRITE_CFG);
-	controlWrite(MT_XO_CTRL6, MT_XO_CTRL6_C2_CTRL, MT_VEND_WRITE_CFG);
+    controlWrite(MT_XO_CTRL5, ctrl | (value << 8), MT_VEND_WRITE_CFG);
+    controlWrite(MT_XO_CTRL6, MT_XO_CTRL6_C2_CTRL, MT_VEND_WRITE_CFG);
     controlWrite(MT_CMB_CTRL, 0x0091a7ff);
 }
 
@@ -1690,7 +1690,7 @@ uint8_t Mt76::getChannelPower(uint8_t channel)
 
     if (!is24Ghz)
     {
-	    powerTableIndex += group * MT_EE_TX_POWER_GROUP_SIZE_5G;
+        powerTableIndex += group * MT_EE_TX_POWER_GROUP_SIZE_5G;
     }
 
     // Each channel group has its own power table
@@ -1730,104 +1730,104 @@ uint8_t Mt76::getChannelPower(uint8_t channel)
 
 uint8_t Mt76::getChannelGroup(uint8_t channel)
 {
-	if (channel >= 184 && channel <= 196)
+    if (channel >= 184 && channel <= 196)
     {
-		return MT_CH_5G_JAPAN;
+        return MT_CH_5G_JAPAN;
     }
 
-	if (channel <= 48)
+    if (channel <= 48)
     {
-		return MT_CH_5G_UNII_1;
+        return MT_CH_5G_UNII_1;
     }
 
-	if (channel <= 64)
+    if (channel <= 64)
     {
-		return MT_CH_5G_UNII_2;
+        return MT_CH_5G_UNII_2;
     }
 
-	if (channel <= 114)
+    if (channel <= 114)
     {
-		return MT_CH_5G_UNII_2E_1;
+        return MT_CH_5G_UNII_2E_1;
     }
 
-	if (channel <= 144)
+    if (channel <= 144)
     {
-		return MT_CH_5G_UNII_2E_2;
+        return MT_CH_5G_UNII_2E_2;
     }
 
-	return MT_CH_5G_UNII_3;
+    return MT_CH_5G_UNII_3;
 }
 
 uint8_t Mt76::getChannelSubgroup(uint8_t channel)
 {
     if (channel >= 192)
     {
-		return MT_CH_5G_HIGH;
+        return MT_CH_5G_HIGH;
     }
 
-	else if (channel >= 184)
+    else if (channel >= 184)
     {
-		return MT_CH_5G_LOW;
+        return MT_CH_5G_LOW;
     }
 
     else if (channel < 6)
     {
-		return MT_CH_2G_LOW;
+        return MT_CH_2G_LOW;
     }
 
-	else if (channel < 11)
+    else if (channel < 11)
     {
-		return MT_CH_2G_MID;
+        return MT_CH_2G_MID;
     }
 
-	else if (channel < 15)
+    else if (channel < 15)
     {
-		return MT_CH_2G_HIGH;
+        return MT_CH_2G_HIGH;
     }
 
-	else if (channel < 44)
+    else if (channel < 44)
     {
-		return MT_CH_5G_LOW;
+        return MT_CH_5G_LOW;
     }
 
-	else if (channel < 52)
+    else if (channel < 52)
     {
-		return MT_CH_5G_HIGH;
+        return MT_CH_5G_HIGH;
     }
 
-	else if (channel < 58)
+    else if (channel < 58)
     {
-		return MT_CH_5G_LOW;
+        return MT_CH_5G_LOW;
     }
 
-	else if (channel < 98)
+    else if (channel < 98)
     {
-		return MT_CH_5G_HIGH;
+        return MT_CH_5G_HIGH;
     }
 
-	else if (channel < 106)
+    else if (channel < 106)
     {
-		return MT_CH_5G_LOW;
+        return MT_CH_5G_LOW;
     }
 
-	else if (channel < 116)
+    else if (channel < 116)
     {
-		return MT_CH_5G_HIGH;
+        return MT_CH_5G_HIGH;
     }
 
-	else if (channel < 130)
+    else if (channel < 130)
     {
-		return MT_CH_5G_LOW;
+        return MT_CH_5G_LOW;
     }
 
-	else if (channel < 149)
+    else if (channel < 149)
     {
-		return MT_CH_5G_HIGH;
+        return MT_CH_5G_HIGH;
     }
 
-	else if (channel < 157)
+    else if (channel < 157)
     {
-		return MT_CH_5G_LOW;
+        return MT_CH_5G_LOW;
     }
 
     return MT_CH_5G_HIGH;
