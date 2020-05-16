@@ -23,6 +23,8 @@ Dongle::Dongle(
     std::unique_ptr<UsbDevice> usbDevice
 ) : Mt76(std::move(usbDevice)), stopThreads(false)
 {
+    Log::info("Dongle initialized");
+
     threads.emplace_back(
         &Dongle::readBulkPackets,
         this,
