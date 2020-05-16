@@ -63,6 +63,16 @@ UsbDevice::~UsbDevice()
 {
     Log::debug("Closing device...");
 
+    int error = libusb_release_interface(handle, 0);
+
+    if (error)
+    {
+        Log::error(
+            "Error releasing interface: %s",
+            libusb_error_name(error)
+        );
+    }
+
     libusb_close(handle);
 }
 
