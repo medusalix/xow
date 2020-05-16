@@ -1,4 +1,6 @@
 # Make dongles and uinput accessible to all users
-SUBSYSTEM=="usb", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02e6", MODE="0666", SYMLINK+="xow", TAG+="systemd", ENV{SYSTEMD_USER_WANTS}="xow.service"
-SUBSYSTEM=="usb", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02fe", MODE="0666", SYMLINK+="xow", TAG+="systemd", ENV{SYSTEMD_USER_WANTS}="xow.service"
+ACTION!="remove", SUBSYSTEM=="usb", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02e6", MODE="0666", SYMLINK+="xow", TAG+="systemd", ENV{SYSTEMD_USER_WANTS}="xow.service"
+ACTION!="remove", SUBSYSTEM=="usb", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02fe", MODE="0666", SYMLINK+="xow", TAG+="systemd", ENV{SYSTEMD_USER_WANTS}="xow.service"
+ACTION=="remove", SUBSYSTEM=="usb", ENV{Product}="45e/2e6/*", TAG+="systemd"
+ACTION=="remove", SUBSYSTEM=="usb", ENV{Product}="45e/2fe/*", TAG+="systemd"
 KERNEL=="uinput", SUBSYSTEM=="misc", MODE="0666"
