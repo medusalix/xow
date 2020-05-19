@@ -87,6 +87,12 @@ void Dongle::handleControllerDisconnect(uint8_t wcid)
 
     std::lock_guard<std::mutex> lock(controllerMutex);
 
+    // Ignore unconnected controllers
+    if (!controllers[wcid - 1])
+    {
+        return;
+    }
+
     controllers[wcid - 1].reset();
 
     if (!removeClient(wcid))
@@ -156,12 +162,13 @@ void Dongle::handleControllerPacket(uint8_t wcid, const Bytes &packet)
 
     std::lock_guard<std::mutex> lock(controllerMutex);
 
+    // Ignore unconnected controllers
     if (!controllers[wcid - 1])
     {
-        Log::error("Packet for unconnected controller '%d'", wcid);
+        return;
     }
 
-    else if (!controllers[wcid - 1]->handlePacket(data))
+    if (!controllers[wcid - 1]->handlePacket(data))
     {
         Log::error("Error handling packet for controller '%d'", wcid);
     }
