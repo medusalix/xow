@@ -6,7 +6,7 @@ After=dev-xow.device
 [Service]
 Type=simple
 ExecStart=#BINDIR#/xow
-Restart=on-failure
+Restart=on-success
 
 [Install]
 WantedBy=default.target
