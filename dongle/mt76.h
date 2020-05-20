@@ -21,6 +21,7 @@
 #include "usb.h"
 
 #include <cstdint>
+#include <functional>
 #include <string>
 
 // Endpoint numbers for reading and writing
@@ -529,7 +530,7 @@ private:
 
     /* Initialization routines */
     bool initRegisters();
-    void calibrateCrystal();
+    bool calibrateCrystal();
     bool initChannels();
     bool loadFirmware();
     bool loadFirmwarePart(
@@ -557,7 +558,8 @@ private:
     bool setLedMode(uint32_t index);
     bool sendCommand(McuCommand command, const Bytes &data);
 
-    /* USB/MCU communication */
+    /* USB/MCU communication/utilities */
+    bool pollTimeout(std::function<bool()> condition);
     uint32_t controlRead(
         uint16_t address,
         VendorRequest request = MT_VEND_MULTI_READ

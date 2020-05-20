@@ -19,6 +19,8 @@
 #include "mt76.h"
 #include "../utils/log.h"
 
+#include <chrono>
+
 #define BITS_PER_LONG (sizeof(long) * 8)
 #define BIT(nr) (1UL << (nr))
 #define GENMASK(h, l) ((~0UL - (1UL << l) + 1) & (~0UL >> (BITS_PER_LONG - 1 - h)))
@@ -778,6 +780,9 @@
 
 /* The defines below belong to this project */
 
+// Poll timeout
+#define MT_TIMEOUT_POLL std::chrono::seconds(1)
+
 // Power-on RF patch
 #define MT_RF_PATCH 0x0130
 
@@ -1234,13 +1239,25 @@ bool Mt76::initRegisters()
     controlWrite(MT_CH_TIME_CFG, 0x015f);
 
     // Calibrate internal crystal oscillator
-    calibrateCrystal();
+    if (!calibrateCrystal())
+    {
+        Log::error("Failed to calibrate crystal");
+
+        return false;
+    }
 
     // Configure automatic gain control (AGC)
     controlWrite(MT_BBP(AGC, 8), 0x18365efa);
     controlWrite(MT_BBP(AGC, 9), 0x18365efa);
 
     macAddress = efuseRead(MT_EE_MAC_ADDR, 6);
+
+    if (macAddress.size() < 6)
+    {
+        Log::error("Failed to read MAC address");
+
+        return false;
+    }
 
     // Some dongles' addresses start with 6c:5d:3a
     // Controllers only connect to 62:45:bx:xx:xx:xx
@@ -1270,6 +1287,14 @@ bool Mt76::initRegisters()
     uint16_t asicVersion = controlRead(MT_ASIC_VERSION) >> 16;
     uint16_t macVersion = controlRead(MT_MAC_CSR0) >> 16;
     Bytes chipId = efuseRead(MT_EE_CHIP_ID, sizeof(uint32_t));
+
+    if (chipId.size() < sizeof(uint32_t))
+    {
+        Log::error("Failed to read chip id");
+
+        return false;
+    }
+
     uint16_t id = (chipId[1] << 8) | chipId[2];
 
     Log::debug("ASIC version: %x", asicVersion);
@@ -1280,9 +1305,17 @@ bool Mt76::initRegisters()
     return true;
 }
 
-void Mt76::calibrateCrystal()
+bool Mt76::calibrateCrystal()
 {
     Bytes trim = efuseRead(MT_EE_XTAL_TRIM_2, sizeof(uint32_t));
+
+    if (trim.size() < sizeof(uint32_t))
+    {
+        Log::error("Failed to read second trim value");
+
+        return false;
+    }
+
     uint16_t value = (trim[3] << 8) | trim[2];
     int8_t offset = value & 0x7f;
 
@@ -1301,6 +1334,14 @@ void Mt76::calibrateCrystal()
     if (value == 0x00 || value == 0xff)
     {
         trim = efuseRead(MT_EE_XTAL_TRIM_1, sizeof(uint32_t));
+
+        if (trim.size() < sizeof(uint32_t))
+        {
+            Log::error("Failed to read first trim value");
+
+            return false;
+        }
+
         value = (trim[3] << 8) | trim[2];
         value &= 0xff;
 
@@ -1317,6 +1358,8 @@ void Mt76::calibrateCrystal()
     controlWrite(MT_XO_CTRL5, ctrl | (value << 8), MT_VEND_WRITE_CFG);
     controlWrite(MT_XO_CTRL6, MT_XO_CTRL6_C2_CTRL, MT_VEND_WRITE_CFG);
     controlWrite(MT_CMB_CTRL, 0x0091a7ff);
+
+    return true;
 }
 
 bool Mt76::initChannels()
@@ -1380,7 +1423,16 @@ bool Mt76::loadFirmware()
         controlWrite(MT_FW_RESET_IVB, 0, MT_VEND_DEV_MODE);
 
         // Wait for firmware to reset
-        while (controlRead(MT_FCE_DMA_ADDR, MT_VEND_READ_CFG) != 0x80000000);
+        bool successful = pollTimeout([this] {
+            return controlRead(MT_FCE_DMA_ADDR, MT_VEND_READ_CFG) != 0x80000000;
+        });
+
+        if (!successful)
+        {
+            Log::error("Firmware reset timed out");
+
+            return false;
+        }
     }
 
     DmaConfig config = {};
@@ -1429,7 +1481,16 @@ bool Mt76::loadFirmware()
     controlWrite(MT_FW_LOAD_IVB, 0, MT_VEND_DEV_MODE);
 
     // Wait for firmware to start
-    while (controlRead(MT_FCE_DMA_ADDR, MT_VEND_READ_CFG) != 0x01);
+    bool successful = pollTimeout([this] {
+        return controlRead(MT_FCE_DMA_ADDR, MT_VEND_READ_CFG) != 0x01;
+    });
+
+    if (!successful)
+    {
+        Log::debug("Firmware loading timed out");
+
+        return false;
+    }
 
     Log::debug("Firmware loaded");
 
@@ -1474,7 +1535,16 @@ bool Mt76::loadFirmwarePart(
 
         uint32_t complete = (length << 16) | MT_DMA_COMPLETE;
 
-        while (controlRead(MT_FCE_DMA_LEN, MT_VEND_READ_CFG) != complete);
+        bool successful = pollTimeout([this, complete] {
+            return controlRead(MT_FCE_DMA_LEN, MT_VEND_READ_CFG) != complete;
+        });
+
+        if (!successful)
+        {
+            Log::error("Firmware part loading timed out");
+
+            return false;
+        }
     }
 
     return true;
@@ -1696,6 +1766,13 @@ uint8_t Mt76::getChannelPower(uint8_t channel)
     // Each channel group has its own power table
     Bytes entry = efuseRead(powerTableIndex, 8);
 
+    if (entry.size() < 8)
+    {
+        Log::error("Failed to read power table entry");
+
+        return MT_CH_POWER_MIN;
+    }
+
     uint8_t index = is24Ghz ? 4 : 5;
     uint8_t powerTarget = entry[index];
     uint8_t powerOffset = entry[index + subgroup];
@@ -1911,9 +1988,18 @@ Bytes Mt76::efuseRead(uint8_t address, uint8_t length)
 
     controlWrite(MT_EFUSE_CTRL, control.value);
 
-    while (controlRead(MT_EFUSE_CTRL) & MT_EFUSE_CTRL_KICK);
-
     Bytes data;
+
+    bool successful = pollTimeout([this] {
+        return MT_EFUSE_CTRL & MT_EFUSE_CTRL_KICK;
+    });
+
+    if (!successful)
+    {
+        Log::error("Read from EFUSE timed out");
+
+        return data;
+    }
 
     for (uint8_t i = 0; i < length; i += sizeof(uint32_t))
     {
@@ -1929,6 +2015,25 @@ Bytes Mt76::efuseRead(uint8_t address, uint8_t length)
     }
 
     return data;
+}
+
+bool Mt76::pollTimeout(std::function<bool()> condition)
+{
+    using Time = std::chrono::steady_clock::time_point;
+
+    Time start = std::chrono::steady_clock::now();
+
+    while (condition())
+    {
+        Time now = std::chrono::steady_clock::now();
+
+        if (now - start > MT_TIMEOUT_POLL)
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 uint32_t Mt76::controlRead(uint16_t address, VendorRequest request)
