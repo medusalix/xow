@@ -79,11 +79,18 @@ void Controller::deviceAnnounced(uint8_t id, const AnnounceData *announce)
 
 void Controller::statusReceived(uint8_t id, const StatusData *status)
 {
-    Log::debug(
-        "Battery type: %d, level: %d",
-        status->batteryType,
-        status->batteryLevel
-    );
+    uint8_t type = status->batteryType;
+    uint8_t level = status->batteryLevel;
+
+    // Controller is charging or level hasn't changed
+    if (type == BATT_TYPE_CHARGING || level == batteryLevel)
+    {
+        return;
+    }
+
+    Log::info("Battery level: %d", level);
+
+    batteryLevel = level;
 }
 
 void Controller::guideButtonPressed(const GuideButtonData *button)

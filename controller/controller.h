@@ -50,4 +50,6 @@ private:
 
     InputDevice inputDevice;
     bool rumbling = false;
+
+    uint8_t batteryLevel = 0xff;
 };

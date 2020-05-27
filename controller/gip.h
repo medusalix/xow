@@ -59,7 +59,7 @@ protected:
         BATT_LEVEL_EMPTY = 0x00,
         BATT_LEVEL_LOW = 0x01,
         BATT_LEVEL_MED = 0x02,
-        BATT_LEVEL_HIGH = 0x03,
+        BATT_LEVEL_FULL = 0x03,
     };
 
     // Controller input can be paused temporarily
