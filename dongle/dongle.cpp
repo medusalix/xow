@@ -121,8 +121,6 @@ void Dongle::handleControllerPair(Bytes address, const Bytes &packet)
         return;
     }
 
-    std::lock_guard<std::mutex> lock(controllerMutex);
-
     if (!pairClient(address))
     {
         Log::error("Failed to pair controller");
