@@ -35,8 +35,9 @@ class InputDevice
 {
 public:
     using FeedbackReceived = std::function<void(
+        uint16_t gain,
         ff_effect effect,
-        uint16_t gain
+        uint8_t replayCount
     )>;
 
     struct AxisConfig

@@ -44,12 +44,12 @@ private:
 
     /* OS interface */
     void inputFeedbackReceived(
+        uint16_t gain,
         ff_effect effect,
-        uint16_t gain
+        uint8_t replayCount
     );
 
     InputDevice inputDevice;
-    bool rumbling = false;
 
     uint8_t batteryLevel = 0xff;
 };

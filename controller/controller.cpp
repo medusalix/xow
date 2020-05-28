@@ -45,7 +45,8 @@ Controller::Controller(
         &Controller::inputFeedbackReceived,
         this,
         std::placeholders::_1,
-        std::placeholders::_2
+        std::placeholders::_2,
+        std::placeholders::_3
     )) {}
 
 Controller::~Controller()
@@ -237,41 +238,49 @@ void Controller::initInput(const AnnounceData *announce)
     }
 }
 
-void Controller::inputFeedbackReceived(ff_effect effect, uint16_t gain)
-{
+void Controller::inputFeedbackReceived(
+    uint16_t gain,
+    ff_effect effect,
+    uint8_t replayCount
+) {
+    // Ignore other types of force feedback
     if (effect.type != FF_RUMBLE)
     {
         return;
     }
 
-    if (!rumbling && gain == 0)
-    {
-        return;
-    }
-
-    // Map effect's magnitudes to rumble power
-    uint8_t weak = static_cast<uint32_t>(
-        effect.u.rumble.weak_magnitude
-    ) * gain / 0xffffff;
-    uint8_t strong = static_cast<uint32_t>(
-        effect.u.rumble.strong_magnitude
-    ) * gain / 0xffffff;
-
     Log::debug(
-        "Feedback length: %d, delay: %d, direction: %d, weak: %d, strong: %d",
+        "Rumble count: %d, duration: %d, delay: %d",
+        replayCount,
         effect.replay.length,
-        effect.replay.delay,
-        effect.direction,
-        weak,
-        strong
+        effect.replay.delay
     );
 
     RumbleData rumble = {};
 
     rumble.motors = RUMBLE_ALL;
-    rumble.left = strong;
-    rumble.right = weak;
-    rumble.duration = 0xff;
+
+    if (replayCount == 0 || gain == 0)
+    {
+        performRumble(rumble);
+
+        return;
+    }
+
+    Log::debug(
+        "Rumble strong: %d, weak: %d, direction: %d",
+        effect.u.rumble.strong_magnitude,
+        effect.u.rumble.weak_magnitude,
+        effect.direction
+    );
+
+    // Map effect's magnitudes to rumble power
+    rumble.left = static_cast<uint32_t>(
+        effect.u.rumble.strong_magnitude
+    ) * gain / 0xffffff;
+    rumble.right = static_cast<uint32_t>(
+        effect.u.rumble.weak_magnitude
+    ) * gain / 0xffffff;
 
     // Upper half of the controller (from left to right)
     if (effect.direction >= 0x4000 && effect.direction <= 0xc000)
@@ -280,7 +289,9 @@ void Controller::inputFeedbackReceived(ff_effect effect, uint16_t gain)
         float angle = static_cast<float>(effect.direction) / 0xffff - 0.125;
         float left = sin(2 * M_PI * angle);
         float right = cos(2 * M_PI * angle);
-        uint8_t maxPower = strong > weak ? strong : weak;
+        uint8_t maxPower = rumble.left > rumble.right ?
+            rumble.left :
+            rumble.right;
 
         // Limit values to left and right areas
         left = left > 0 ? left : 0;
@@ -291,7 +302,24 @@ void Controller::inputFeedbackReceived(ff_effect effect, uint16_t gain)
         rumble.triggerRight = right * maxPower / 4;
     }
 
-    performRumble(rumble);
+    uint16_t duration = effect.replay.length / 10;
+    uint16_t delay = effect.replay.delay / 10;
 
-    rumbling = gain > 0;
+    // Use maximum duration if not specified or out of range
+    if (duration == 0x00 || duration > 0xff)
+    {
+        duration = 0xff;
+    }
+
+    if (delay > 0xff)
+    {
+        delay = 0xff;
+    }
+
+    // Time in multiples of 10 ms
+    rumble.duration = duration;
+    rumble.delay = delay;
+    rumble.repeat = replayCount - 1;
+
+    performRumble(rumble);
 }

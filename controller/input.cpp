@@ -172,8 +172,6 @@ void InputDevice::handleFeedbackUpload(uint32_t id)
             "Error ending feedback upload: %s",
             strerror(errno)
         );
-
-        return;
     }
 }
 
@@ -202,8 +200,6 @@ void InputDevice::handleFeedbackErase(uint32_t id)
             "Error ending feedback erase: %s",
             strerror(errno)
         );
-
-        return;
     }
 }
 
@@ -219,9 +215,6 @@ void InputDevice::handleEvent(input_event event)
         else if (event.code == UI_FF_ERASE)
         {
             handleFeedbackErase(event.value);
-
-            // Stop feedback
-            feedbackReceived(effect, 0);
         }
     }
 
@@ -233,8 +226,10 @@ void InputDevice::handleEvent(input_event event)
             effectGain = event.value;
         }
 
-        // Start or stop feedback based on event value
-        feedbackReceived(effect, event.value > 0 ? effectGain : 0);
+        else if (event.code == effect.id)
+        {
+            feedbackReceived(effectGain, effect, event.value);
+        }
     }
 }
 
