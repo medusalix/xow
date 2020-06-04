@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="logo.png" alt="Logo">
+    <img src="assets/logo.png" alt="Logo">
 </p>
 
 <p align="center">
@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <img src="screenshot.png" alt="Screenshot">
+  <img src="assets/screenshot.png" alt="Screenshot">
 </p>
 
 ## About
