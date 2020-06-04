@@ -24,9 +24,6 @@ xow is a Linux user mode driver for the Xbox One wireless dongle.
 It communicates with the dongle via `libusb` and provides joystick input through the `uinput` kernel module.
 The input mapping is based on existing kernel drivers like [xpad](https://github.com/paroj/xpad).
 
-**NOTE:** xow is still at a **VERY EARLY** stage of development. Do not be surprised if it does not work *at all*.
-In case of problems, please open an issue with all the relevant details (dongle version, controller version, logs, captures, etc.) and I will see what I can do.
-
 ## Important notes
 
 The Xbox One wireless dongle requires a proprietary firmware to operate.
@@ -140,7 +137,9 @@ sudo systemctl kill -s SIGUSR1 xow
 - Input from the sticks is jumping around
     - Try the options listed on [this page](https://wiki.archlinux.org/index.php/Gamepad#Setting_up_deadzones_and_calibration) to set your deadzones.
 
-**NOTE:** Please refrain from opening issues concerning input remapping, deadzones or game compatibility as these topics are outside the scope of this project.
+In case of any problems, please open an issue with all the relevant details (dongle version, controller version, logs, captures, etc.) and I will see what I can do.
+
+**NOTE:** Please refrain from creating issues concerning input remapping, deadzones or game compatibility as these topics are outside the scope of this project.
 
 ## How it works
 
