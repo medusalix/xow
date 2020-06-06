@@ -28,7 +28,7 @@ The input mapping is based on existing kernel drivers like [xpad](https://github
 
 The Xbox One wireless dongle requires a proprietary firmware to operate.
 The firmware is included with the *Xbox - Net - 7/11/2017 12:00:00 AM - 1.0.46.1* driver available from *Microsoft Update Catalog*.
-The package is automatically downloaded and extracted during the build process due to Microsoft's [Terms of Use](http://www.microsoft.com/en-us/legal/intellectualproperty/copyright/default.aspx), which strictly disallow the distribution of the firmware.
+The package is automatically downloaded and extracted during the build process due to Microsoft's [Terms of Use](https://www.microsoft.com/en-us/legal/intellectualproperty/copyright/default.aspx), which strictly disallow the distribution of the firmware.
 **By using xow, you accept Microsoft's license terms for their driver package.**
 
 ## Supported devices
