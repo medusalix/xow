@@ -258,7 +258,10 @@ void Controller::inputFeedbackReceived(
 
     RumbleData rumble = {};
 
-    rumble.motors = RUMBLE_ALL;
+    rumble.setRight = true;
+    rumble.setLeft = true;
+    rumble.setRightTrigger = true;
+    rumble.setLeftTrigger = true;
 
     if (replayCount == 0 || gain == 0)
     {
@@ -298,8 +301,8 @@ void Controller::inputFeedbackReceived(
         right = right < 0 ? -right : 0;
 
         // The trigger motors are very strong
-        rumble.triggerLeft = left * maxPower / 4;
-        rumble.triggerRight = right * maxPower / 4;
+        rumble.leftTrigger = left * maxPower / 4;
+        rumble.rightTrigger = right * maxPower / 4;
     }
 
     uint16_t duration = effect.replay.length / 10;

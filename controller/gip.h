@@ -70,15 +70,6 @@ protected:
         POWER_OFF = 0x04,
     };
 
-    enum RumbleMotors
-    {
-        RUMBLE_RIGHT = 0x01,
-        RUMBLE_LEFT = 0x02,
-        RUMBLE_LT = 0x04,
-        RUMBLE_RT = 0x08,
-        RUMBLE_ALL = 0x0f,
-    };
-
     enum LedMode
     {
         LED_OFF = 0x00,
@@ -90,22 +81,20 @@ protected:
         LED_FADE_FAST = 0x09,
     };
 
-    struct VersionInfo
-    {
-        uint16_t major;
-        uint16_t minor;
-        uint16_t build;
-        uint16_t revision;
-    } __attribute__((packed));
-
     struct AnnounceData
     {
         uint8_t macAddress[6];
         uint16_t unknown;
         uint16_t vendorId;
         uint16_t productId;
-        VersionInfo firmwareVersion;
-        VersionInfo hardwareVersion;
+
+        struct
+        {
+            uint16_t major;
+            uint16_t minor;
+            uint16_t build;
+            uint16_t revision;
+        } __attribute__((packed)) firmwareVersion, hardwareVersion;
     } __attribute__((packed));
 
     struct StatusData
@@ -125,10 +114,14 @@ protected:
 
     struct RumbleData
     {
-        uint8_t unknown1;
-        uint8_t motors;
-        uint8_t triggerLeft;
-        uint8_t triggerRight;
+        uint8_t unknown;
+        uint8_t setRight : 1;
+        uint8_t setLeft : 1;
+        uint8_t setRightTrigger : 1;
+        uint8_t setLeftTrigger : 1;
+        uint8_t padding : 4;
+        uint8_t leftTrigger;
+        uint8_t rightTrigger;
         uint8_t left;
         uint8_t right;
         uint8_t duration;
@@ -149,28 +142,27 @@ protected:
         char serialNumber[14];
     } __attribute__((packed));
 
-    struct Buttons
-    {
-        uint32_t unknown : 2;
-        uint32_t start : 1;
-        uint32_t select : 1;
-        uint32_t a : 1;
-        uint32_t b : 1;
-        uint32_t x : 1;
-        uint32_t y : 1;
-        uint32_t dpadUp : 1;
-        uint32_t dpadDown : 1;
-        uint32_t dpadLeft : 1;
-        uint32_t dpadRight : 1;
-        uint32_t bumperLeft : 1;
-        uint32_t bumperRight : 1;
-        uint32_t stickLeft : 1;
-        uint32_t stickRight : 1;
-    } __attribute__((packed));
-
     struct InputData
     {
-        Buttons buttons;
+        struct
+        {
+            uint32_t unknown : 2;
+            uint32_t start : 1;
+            uint32_t select : 1;
+            uint32_t a : 1;
+            uint32_t b : 1;
+            uint32_t x : 1;
+            uint32_t y : 1;
+            uint32_t dpadUp : 1;
+            uint32_t dpadDown : 1;
+            uint32_t dpadLeft : 1;
+            uint32_t dpadRight : 1;
+            uint32_t bumperLeft : 1;
+            uint32_t bumperRight : 1;
+            uint32_t stickLeft : 1;
+            uint32_t stickRight : 1;
+        } __attribute__((packed)) buttons;
+
         uint16_t triggerLeft;
         uint16_t triggerRight;
         int16_t stickLeftX;
