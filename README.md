@@ -137,7 +137,14 @@ sudo systemctl kill -s SIGUSR1 xow
 - Input from the sticks is jumping around
     - Try the options listed on [this page](https://wiki.archlinux.org/index.php/Gamepad#Setting_up_deadzones_and_calibration) to set your deadzones.
 
-In case of any problems, please open an issue with all the relevant details (dongle version, controller version, logs, captures, etc.) and I will see what I can do.
+### USB incompatibilities
+
+Please avoid plugging your wireless dongle into a USB port that uses an `ASMedia` controller.
+`Intel` USB controllers are known to work well with xow.
+
+### Other problems
+
+In case of any other problems, please open an issue with all the relevant details (dongle version, controller version, logs, captures, etc.).
 
 **NOTE:** Please refrain from creating issues concerning input remapping, deadzones or game compatibility as these topics are outside the scope of this project.
 
