@@ -51,6 +51,8 @@ The following Xbox One controllers are currently compatible with the driver:
 
 [![Packaging status](https://repology.org/badge/vertical-allrepos/xow.svg)](https://repology.org/project/xow/versions)
 
+- [RPM packaging instructions](https://gitlab.com/yajoman/xow-rpm) (for distributions like Fedora)
+
 ### Third-party hardware
 
 - EmuELEC (starting with [version 3.3](https://github.com/EmuELEC/EmuELEC/releases/tag/v3.3))
