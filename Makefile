@@ -1,11 +1,10 @@
 BUILD := DEBUG
 VERSION := $(shell git describe --tags)
-LOCK_FILE := /tmp/xow.lock
 
 FLAGS := -Wall -Wpedantic -std=c++11 -MMD
 DEBUG_FLAGS := -Og -g -DDEBUG
 RELEASE_FLAGS := -O3
-DEFINES := -DVERSION=\"$(VERSION)\" -DLOCK_FILE=\"$(LOCK_FILE)\"
+DEFINES := -DVERSION=\"$(VERSION)\"
 
 CXXFLAGS += $(FLAGS) $($(BUILD)_FLAGS) $(DEFINES)
 LDLIBS += -lstdc++ -lm -lpthread -lusb-1.0

@@ -21,37 +21,15 @@
 #include "dongle/usb.h"
 #include "dongle/dongle.h"
 
-#include <cstdlib>
 #include <cstring>
 #include <csignal>
-#include <sys/file.h>
 #include <sys/signalfd.h>
 
-bool acquireLock()
+int main()
 {
-    // Open lock file, read and writable by all users
-    int file = open(LOCK_FILE, O_CREAT | O_RDWR, 0666);
+    Log::init();
+    Log::info("xow %s ©Severin v. W.", VERSION);
 
-    if (flock(file, LOCK_EX | LOCK_NB))
-    {
-        if (errno == EWOULDBLOCK)
-        {
-            Log::error("Another instance of xow is already running");
-        }
-
-        else
-        {
-            Log::error("Error creating lock file: %s", strerror(errno));
-        }
-
-        return false;
-    }
-
-    return true;
-}
-
-bool run()
-{
     sigset_t signalMask;
 
     sigemptyset(&signalMask);
@@ -64,7 +42,7 @@ bool run()
     {
         Log::error("Error blocking signals: %s", strerror(errno));
 
-        return false;
+        return EXIT_FAILURE;
     }
 
     UsbDeviceManager manager;
@@ -74,7 +52,7 @@ bool run()
     {
         Log::error("Error unblocking signals: %s", strerror(errno));
 
-        return false;
+        return EXIT_FAILURE;
     }
 
     // Bind USB device termination to signal reader interruption
@@ -93,7 +71,7 @@ bool run()
     {
         Log::error("Error blocking signals: %s", strerror(errno));
 
-        return false;
+        return EXIT_FAILURE;
     }
 
     int file = signalfd(-1, &signalMask, 0);
@@ -102,7 +80,7 @@ bool run()
     {
         Log::error("Error creating signal file: %s", strerror(errno));
 
-        return false;
+        return EXIT_FAILURE;
     }
 
     signalReader.prepare(file);
@@ -128,24 +106,6 @@ bool run()
     }
 
     Log::info("Shutting down...");
-
-    return true;
-}
-
-int main()
-{
-    Log::init();
-    Log::info("xow %s ©Severin v. W.", VERSION);
-
-    if (!acquireLock())
-    {
-        return EXIT_FAILURE;
-    }
-
-    if (!run())
-    {
-        return EXIT_FAILURE;
-    }
 
     return EXIT_SUCCESS;
 }

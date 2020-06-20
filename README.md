@@ -86,7 +86,7 @@ make BUILD=RELEASE
 
 **NOTE:** Please use `BUILD=DEBUG` when asked for your debug logs.
 
-Install xow as a `systemd` service (starts xow at boot time):
+Install xow as a `systemd` unit (runs xow at boot time) and start the service:
 
 ```
 sudo make install
@@ -94,7 +94,7 @@ sudo systemctl enable xow
 sudo systemctl start xow
 ```
 
-**NOTE:** A reboot might be required for xow to work correctly.
+**NOTE:** Running xow manually is **strongly discouraged**. A reboot might be required for xow to work correctly.
 
 ### Updating
 
