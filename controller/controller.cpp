@@ -38,6 +38,8 @@
 #define INPUT_TRIGGER_FUZZ 3
 #define INPUT_TRIGGER_FLAT 63
 
+#define RUMBLE_MAX_POWER 100
+
 Controller::Controller(
     SendPacket sendPacket
 ) : GipDevice(sendPacket),
@@ -277,13 +279,17 @@ void Controller::inputFeedbackReceived(
         effect.direction
     );
 
-    // Map effect's magnitudes to rumble power
-    rumble.left = static_cast<uint32_t>(
+    // Apply force feedback gain
+    uint16_t weak = static_cast<uint32_t>(
         effect.u.rumble.strong_magnitude
-    ) * gain / 0xffffff;
-    rumble.right = static_cast<uint32_t>(
+    ) * gain / 0xffff;
+    uint16_t strong = static_cast<uint32_t>(
         effect.u.rumble.weak_magnitude
-    ) * gain / 0xffffff;
+    ) * gain / 0xffff;
+
+    // Map effect's magnitudes to rumble power
+    rumble.left = weak * RUMBLE_MAX_POWER / 0xffff;
+    rumble.right = strong * RUMBLE_MAX_POWER / 0xffff;
 
     // Upper half of the controller (from left to right)
     if (effect.direction >= 0x4000 && effect.direction <= 0xc000)
@@ -301,8 +307,8 @@ void Controller::inputFeedbackReceived(
         right = right < 0 ? -right : 0;
 
         // The trigger motors are very strong
-        rumble.leftTrigger = left * maxPower / 4;
-        rumble.rightTrigger = right * maxPower / 4;
+        rumble.leftTrigger = left * maxPower / 2;
+        rumble.rightTrigger = right * maxPower / 2;
     }
 
     uint16_t duration = effect.replay.length / 10;
