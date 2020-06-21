@@ -121,13 +121,13 @@ sudo systemctl kill -s SIGUSR1 xow
 ### Error messages
 
 - `InputException`: No such file or directory
-    - Make sure that `/dev/uinput` is available (requires the `uinput` kernel module).
+    - The `/dev/uinput` device has to be available. The `uinput` kernel module needs to be loaded.
 - `InputException`: Permission denied
-    - Make sure that the `udev` rules are correctly installed and that the permissions for `/dev/uinput` allow read and write access.
-    There might be conflicts with existing `udev` rules on some systems that need to be resolved.
-- `Mt76Exception` or `LIBUSB_ERROR_NO_DEVICE`
-    - Make sure that you are only running one instance of xow at a time.
-    If you are running xow manually you have to stop the `systemd` service.
+    - The permissions for `/dev/uinput` have to allow read and write access. The `udev` rules need to be installed and any conflicts with existing rules have to be resolved.
+- `LIBUSB_ERROR_BUSY` or `LIBUSB_ERROR_NO_DEVICE`
+    - Only a single program can communicate with the dongle at once. Any existing drivers that might interfere with xow need to be disabled. This includes running multiple instances of xow.
+- `LIBUSB_ERROR_ACCESS`
+    - The permissions for the dongle's USB device have to be set correctly. This is also handled by the `udev` rules.
 
 ### Configuration issues
 
