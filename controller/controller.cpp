@@ -39,6 +39,7 @@
 #define INPUT_TRIGGER_FLAT 63
 
 #define RUMBLE_MAX_POWER 100
+#define RUMBLE_DELAY std::chrono::milliseconds(10)
 
 Controller::Controller(
     SendPacket sendPacket
@@ -49,10 +50,19 @@ Controller::Controller(
         std::placeholders::_1,
         std::placeholders::_2,
         std::placeholders::_3
-    )) {}
+    )),
+    stopRumbleThread(false) {}
 
 Controller::~Controller()
 {
+    stopRumbleThread = true;
+    rumbleCondition.notify_one();
+
+    if (rumbleThread.joinable())
+    {
+        rumbleThread.join();
+    }
+
     if (!setPowerMode(DEVICE_ID_CONTROLLER, POWER_OFF))
     {
         Log::error("Failed to turn off controller");
@@ -238,6 +248,27 @@ void Controller::initInput(const AnnounceData *announce)
 
         inputDevice.create(DEVICE_NAME, deviceConfig);
     }
+
+    rumbleThread = std::thread(&Controller::processRumble, this);
+}
+
+void Controller::processRumble()
+{
+    RumbleData rumble = {};
+    std::unique_lock<std::mutex> lock(rumbleMutex);
+
+    while (!stopRumbleThread)
+    {
+        rumbleCondition.wait(lock);
+
+        while (rumbleBuffer.get(rumble))
+        {
+            performRumble(rumble);
+
+            // Delay rumble to work around firmware bug
+            std::this_thread::sleep_for(RUMBLE_DELAY);
+        }
+    }
 }
 
 void Controller::inputFeedbackReceived(
@@ -267,7 +298,8 @@ void Controller::inputFeedbackReceived(
 
     if (replayCount == 0 || gain == 0)
     {
-        performRumble(rumble);
+        rumbleBuffer.put(rumble);
+        rumbleCondition.notify_one();
 
         return;
     }
@@ -330,5 +362,6 @@ void Controller::inputFeedbackReceived(
     rumble.delay = delay;
     rumble.repeat = replayCount - 1;
 
-    performRumble(rumble);
+    rumbleBuffer.put(rumble);
+    rumbleCondition.notify_one();
 }

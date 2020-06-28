@@ -20,6 +20,12 @@
 
 #include "gip.h"
 #include "input.h"
+#include "../utils/buffer.h"
+
+#include <atomic>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
 /*
  * Forwards gamepad events to virtual input device
@@ -42,6 +48,9 @@ private:
     /* Device initialization */
     void initInput(const AnnounceData *announce);
 
+    /* Rumble buffer consumer */
+    void processRumble();
+
     /* OS interface */
     void inputFeedbackReceived(
         uint16_t gain,
@@ -50,6 +59,11 @@ private:
     );
 
     InputDevice inputDevice;
+    std::atomic<bool> stopRumbleThread;
+    std::thread rumbleThread;
+    std::mutex rumbleMutex;
+    std::condition_variable rumbleCondition;
+    Buffer<RumbleData> rumbleBuffer;
 
     uint8_t batteryLevel = 0xff;
 };
