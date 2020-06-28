@@ -77,7 +77,7 @@ void GipDevice::rumbleWorker() {
     Log::info("thread %x: Started rumble protocol thread", std::this_thread::get_id());
     while (!tripleBuffer.threadExit) {
         tripleBuffer.worker.wait(lock);
-        if (tripleBuffer.queued)
+        while (std::atomic_exchange(&tripleBuffer.queued, false))
             performRumble();
     }
     Log::info("thread %x: Stopped rumble protocol thread", std::this_thread::get_id());
