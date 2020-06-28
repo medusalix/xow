@@ -210,7 +210,12 @@ bool GipDevice::performRumble() {
     Log::debug("thread 0x%x performRumble: tripleBuffer .front 0x%x .back 0x%x .send 0x%x",
                std::this_thread::get_id(), tripleBuffer.front.get(), tripleBuffer.back.get(),
                tripleBuffer.send.get());
-    return sendPacket(out);
+
+    /* send the packet and throttle for 10ms after success */
+    auto ret = sendPacket(out);
+    if (ret)
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    return ret;
 }
 
 bool GipDevice::setLedMode(LedModeData mode)
