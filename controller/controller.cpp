@@ -311,5 +311,6 @@ void Controller::inputFeedbackReceived(
         rumble.delay = delay;
         rumble.repeat = replayCount - 1;
     }
-    performRumble(rumble);
+    queueRumble(rumble);
+    performRumble();
 }

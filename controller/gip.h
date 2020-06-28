@@ -18,8 +18,10 @@
 
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <functional>
+#include <memory>
 
 struct Frame;
 class Bytes;
@@ -114,6 +116,7 @@ protected:
 
     struct RumbleData
     {
+        RumbleData(){};
         uint8_t unknown;
         uint8_t setRight : 1;
         uint8_t setLeft : 1;
@@ -181,13 +184,23 @@ protected:
     virtual void inputReceived(const InputData *input) = 0;
 
     bool setPowerMode(uint8_t id, PowerMode mode);
-    bool performRumble(RumbleData rumble);
+    void queueRumble(const RumbleData rumble);
+    bool performRumble();
     bool setLedMode(LedModeData mode);
     bool requestSerialNumber();
 
 private:
     bool acknowledgePacket(Frame frame);
     uint8_t getSequence(bool accessory = false);
+
+    struct RumbleTripleBuffer {
+        std::atomic_bool queued{false};
+        std::atomic_bool threadExit{false};
+        /* the front buffer is our synchronization point */
+        std::shared_ptr<RumbleData> front{new RumbleData()};
+        std::shared_ptr<RumbleData> back{new RumbleData()};
+        std::shared_ptr<RumbleData> send{new RumbleData()};
+    } tripleBuffer;
 
     uint8_t sequence = 0x01;
     uint8_t accessorySequence = 0x01;

@@ -16,6 +16,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+#include <thread>
+
 #include "gip.h"
 #include "../utils/log.h"
 #include "../utils/bytes.h"
@@ -150,20 +152,41 @@ bool GipDevice::setPowerMode(uint8_t id, PowerMode mode)
     return sendPacket(out);
 }
 
-bool GipDevice::performRumble(RumbleData rumble)
-{
+void GipDevice::queueRumble(const RumbleData rumble) {
+    /* update our back buffer */
+    *tripleBuffer.back = rumble;
+
+    /* make our back buffer the new front buffer */
+    auto frontBuffer = std::atomic_exchange(&tripleBuffer.front, tripleBuffer.back);
+    std::atomic_store(&tripleBuffer.back, frontBuffer);
+
+    tripleBuffer.queued = true;
+
+    Log::debug("thread 0x%x queueRumble: tripleBuffer .front 0x%x .back 0x%x .send 0x%x",
+               std::this_thread::get_id(), tripleBuffer.front.get(), tripleBuffer.back.get(),
+               tripleBuffer.send.get());
+}
+
+bool GipDevice::performRumble() {
+    /* get the current front buffer for sending */
+    auto frontBuffer = std::atomic_exchange(&tripleBuffer.front, tripleBuffer.send);
+    std::atomic_store(&tripleBuffer.send, frontBuffer);
+
     Frame frame = {};
 
     frame.command = CMD_RUMBLE;
     frame.type = TYPE_COMMAND;
     frame.sequence = getSequence();
-    frame.length = sizeof(rumble);
+    frame.length = sizeof(*tripleBuffer.send);
 
     Bytes out;
 
     out.append(frame);
-    out.append(rumble);
+    out.append(*tripleBuffer.send);
 
+    Log::debug("thread 0x%x performRumble: tripleBuffer .front 0x%x .back 0x%x .send 0x%x",
+               std::this_thread::get_id(), tripleBuffer.front.get(), tripleBuffer.back.get(),
+               tripleBuffer.send.get());
     return sendPacket(out);
 }
 
