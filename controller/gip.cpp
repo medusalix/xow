@@ -59,7 +59,29 @@ struct Frame
     uint8_t length;
 } __attribute__((packed));
 
-GipDevice::GipDevice(SendPacket sendPacket) : sendPacket(sendPacket) {}
+GipDevice::GipDevice(SendPacket sendPacket) : sendPacket(sendPacket) {
+    rumbleThread = std::thread([&] { rumbleWorker(); });
+}
+
+GipDevice::~GipDevice() {
+    if (rumbleThread.joinable()) {
+        Log::info("Stopping rumble protocol thread 0x%x", rumbleThread.get_id());
+        tripleBuffer.threadExit = true;
+        tripleBuffer.worker.notify_all();
+        rumbleThread.join();
+    }
+}
+
+void GipDevice::rumbleWorker() {
+    std::unique_lock<std::mutex> lock(tripleBuffer.worker_m);
+    Log::info("thread %x: Started rumble protocol thread", std::this_thread::get_id());
+    while (!tripleBuffer.threadExit) {
+        tripleBuffer.worker.wait(lock);
+        if (tripleBuffer.queued)
+            performRumble();
+    }
+    Log::info("thread %x: Stopped rumble protocol thread", std::this_thread::get_id());
+}
 
 bool GipDevice::handlePacket(const Bytes &packet)
 {
@@ -161,6 +183,7 @@ void GipDevice::queueRumble(const RumbleData rumble) {
     std::atomic_store(&tripleBuffer.back, frontBuffer);
 
     tripleBuffer.queued = true;
+    tripleBuffer.worker.notify_all();
 
     Log::debug("thread 0x%x queueRumble: tripleBuffer .front 0x%x .back 0x%x .send 0x%x",
                std::this_thread::get_id(), tripleBuffer.front.get(), tripleBuffer.back.get(),

@@ -19,9 +19,11 @@
 #pragma once
 
 #include <atomic>
+#include <condition_variable>
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <thread>
 
 struct Frame;
 class Bytes;
@@ -175,7 +177,7 @@ protected:
     } __attribute__((packed));
 
     GipDevice(SendPacket sendPacket);
-    virtual ~GipDevice() = default;
+    ~GipDevice();
 
     virtual void deviceAnnounced(uint8_t id, const AnnounceData *announce) = 0;
     virtual void statusReceived(uint8_t id, const StatusData *status) = 0;
@@ -193,10 +195,15 @@ private:
     bool acknowledgePacket(Frame frame);
     uint8_t getSequence(bool accessory = false);
 
+    void rumbleWorker();
+
+    std::thread rumbleThread;
     struct RumbleTripleBuffer {
         std::atomic_bool queued{false};
         std::atomic_bool threadExit{false};
         /* the front buffer is our synchronization point */
+        std::condition_variable worker;
+        std::mutex worker_m;
         std::shared_ptr<RumbleData> front{new RumbleData()};
         std::shared_ptr<RumbleData> back{new RumbleData()};
         std::shared_ptr<RumbleData> send{new RumbleData()};
