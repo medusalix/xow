@@ -74,13 +74,13 @@ GipDevice::~GipDevice() {
 
 void GipDevice::rumbleWorker() {
     std::unique_lock<std::mutex> lock(tripleBuffer.worker_m);
-    Log::info("thread %x: Started rumble protocol thread", std::this_thread::get_id());
+    Log::info("Started rumble protocol thread");
     while (!tripleBuffer.threadExit) {
         tripleBuffer.worker.wait(lock);
         while (std::atomic_exchange(&tripleBuffer.queued, false))
             performRumble();
     }
-    Log::info("thread %x: Stopped rumble protocol thread", std::this_thread::get_id());
+    Log::info("Stopped rumble protocol thread");
 }
 
 bool GipDevice::handlePacket(const Bytes &packet)
@@ -185,9 +185,8 @@ void GipDevice::queueRumble(const RumbleData rumble) {
     tripleBuffer.queued = true;
     tripleBuffer.worker.notify_all();
 
-    Log::debug("thread 0x%x queueRumble: tripleBuffer .front 0x%x .back 0x%x .send 0x%x",
-               std::this_thread::get_id(), tripleBuffer.front.get(), tripleBuffer.back.get(),
-               tripleBuffer.send.get());
+    Log::debug("queueRumble: tripleBuffer .front 0x%x .back 0x%x .send 0x%x",
+               tripleBuffer.front.get(), tripleBuffer.back.get(), tripleBuffer.send.get());
 }
 
 bool GipDevice::performRumble() {
@@ -207,9 +206,8 @@ bool GipDevice::performRumble() {
     out.append(frame);
     out.append(*tripleBuffer.send);
 
-    Log::debug("thread 0x%x performRumble: tripleBuffer .front 0x%x .back 0x%x .send 0x%x",
-               std::this_thread::get_id(), tripleBuffer.front.get(), tripleBuffer.back.get(),
-               tripleBuffer.send.get());
+    Log::debug("performRumble: tripleBuffer .front 0x%x .back 0x%x .send 0x%x",
+               tripleBuffer.front.get(), tripleBuffer.back.get(), tripleBuffer.send.get());
 
     /* send the packet and throttle for 10ms after success */
     auto ret = sendPacket(out);

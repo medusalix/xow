@@ -16,11 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include "log.h"
-#include "bytes.h"
-
-#include <sstream>
 #include <iomanip>
+#include <sstream>
+#include <thread>
+
+#include "bytes.h"
+#include "log.h"
 
 namespace Log
 {
@@ -56,8 +57,10 @@ namespace Log
             stream << std::put_time(&localTime, "%F %T") << " ";
         }
 
-        stream << std::left << std::setw(5);
-        stream << level << " - ";
+        stream << "[" << std::left << std::setw(5);
+        stream << level << "] [";
+        stream << std::hex << std::setw(16) << std::right;
+        stream << std::this_thread::get_id() << "] - ";
         stream << message << std::endl;
 
         return stream.str();
