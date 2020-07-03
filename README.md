@@ -130,6 +130,10 @@ sudo systemctl kill -s SIGUSR1 xow
 - `LIBUSB_ERROR_ACCESS`
     - The permissions for the dongle's USB device have to be set correctly. This is also handled by the `udev` rules.
 
+### Pairing problems
+
+The controller only remembers the *last* device it was connected to. It will not automatically establish a connection to the dongle if it was previously plugged into a USB port or paired via bluetooth, even if the same computer was used.
+
 ### Configuration issues
 
 - Certain games do not detect wireless controllers
