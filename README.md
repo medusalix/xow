@@ -127,6 +127,8 @@ sudo systemctl kill -s SIGUSR1 xow
     - The permissions for `/dev/uinput` have to allow read and write access. The `udev` rules need to be installed and any conflicts with existing rules have to be resolved.
 - `Mt76Exception`: Failed to load firmware
     - Another driver might have already loaded the dongle's firmware. The dongle needs to be unplugged to reset its internal memory, followed by a restart of xow's `systemd` service.
+- `LIBUSB_ERROR_TIMEOUT`
+    - See the [USB incompatibilities](#usb-incompatibilities) section.
 - `LIBUSB_ERROR_BUSY` or `LIBUSB_ERROR_NO_DEVICE`
     - Only a single program can communicate with the dongle at once. Any existing drivers that might interfere with xow need to be disabled. This includes running multiple instances of xow.
 - `LIBUSB_ERROR_ACCESS`
@@ -148,8 +150,8 @@ The controller only remembers the *last* device it was connected to. It will not
 
 ### USB incompatibilities
 
-Please avoid plugging your wireless dongle into a USB port that uses an `ASMedia` controller.
-`Intel` USB controllers are known to work well with xow.
+Some USB controllers are known to cause issues with xow. Plugging your dongle into a USB port that uses an `ASMedia` controller will lead to problems. Most `Intel` USB controllers work well with xow.
+Power management issues can arise when using a USB 3 controller. These can lead to timeouts of the USB communication. The use of a USB hub can mitigate these problems.
 
 ### Other problems
 
