@@ -129,6 +129,8 @@ sudo systemctl kill -s SIGUSR1 xow
     - Only a single program can communicate with the dongle at once. Any existing drivers that might interfere with xow need to be disabled. This includes running multiple instances of xow.
 - `LIBUSB_ERROR_ACCESS`
     - The permissions for the dongle's USB device have to be set correctly. This is also handled by the `udev` rules.
+- `Mt76Exception`
+    - along with `ERROR - Firmware reset timed out`: It might help to unplug your dongle, restart xow and replug the dongle.
 
 ### Pairing problems
 
