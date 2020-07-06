@@ -125,12 +125,12 @@ sudo systemctl kill -s SIGUSR1 xow
     - The `/dev/uinput` device has to be available. The `uinput` kernel module needs to be loaded.
 - `InputException`: Permission denied
     - The permissions for `/dev/uinput` have to allow read and write access. The `udev` rules need to be installed and any conflicts with existing rules have to be resolved.
+- `Mt76Exception`: Failed to load firmware
+    - Another driver might have already loaded the dongle's firmware. The dongle needs to be unplugged to reset its internal memory, followed by a restart of xow's `systemd` service.
 - `LIBUSB_ERROR_BUSY` or `LIBUSB_ERROR_NO_DEVICE`
     - Only a single program can communicate with the dongle at once. Any existing drivers that might interfere with xow need to be disabled. This includes running multiple instances of xow.
 - `LIBUSB_ERROR_ACCESS`
     - The permissions for the dongle's USB device have to be set correctly. This is also handled by the `udev` rules.
-- `Mt76Exception`
-    - along with `ERROR - Firmware reset timed out`: It might help to unplug your dongle, restart xow and replug the dongle.
 
 ### Pairing problems
 
