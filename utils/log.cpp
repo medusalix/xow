@@ -51,9 +51,8 @@ namespace Log
         std::time_t time = std::time(nullptr);
         std::tm localTime = {};
 
-        // Add local time to output if available
-        if (localtime_r(&time, &localTime))
-        {
+        // Add local time to output if available and not logging to journald
+        if (!getenv("JOURNAL_STREAM") && localtime_r(&time, &localTime)) {
             stream << std::put_time(&localTime, "%F %T") << " ";
         }
 
