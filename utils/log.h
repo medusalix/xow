@@ -20,6 +20,10 @@
 
 #include <string>
 
+#define LOG_DEBUG 7
+#define LOG_INFO 6
+#define LOG_ERROR 3
+
 class Bytes;
 
 /*
@@ -29,7 +33,7 @@ class Bytes;
 namespace Log
 {
     std::string formatBytes(const Bytes &bytes);
-    std::string formatLog(std::string level, std::string message);
+    std::string formatLog(const int syslog_level, std::string message);
 
     inline void init()
     {
@@ -40,7 +44,7 @@ namespace Log
     inline void debug(std::string message)
     {
         #ifdef DEBUG
-        std::string output = formatLog("DEBUG", message);
+        std::string output = formatLog(LOG_DEBUG, message);
         std::fputs(output.c_str(), stdout);
         #endif
     }
@@ -49,34 +53,34 @@ namespace Log
     inline void debug(std::string message, Args... args)
     {
         #ifdef DEBUG
-        std::string output = formatLog("DEBUG", message);
+        std::string output = formatLog(LOG_DEBUG, message);
         std::fprintf(stdout, output.c_str(), args...);
         #endif
     }
 
     inline void info(std::string message)
     {
-        std::string output = formatLog("INFO", message);
+        std::string output = formatLog(LOG_INFO, message);
         std::fputs(output.c_str(), stdout);
     }
 
     template<typename... Args>
     inline void info(std::string message, Args... args)
     {
-        std::string output = formatLog("INFO", message);
+        std::string output = formatLog(LOG_INFO, message);
         std::fprintf(stdout, output.c_str(), args...);
     }
 
     inline void error(std::string message)
     {
-        std::string output = formatLog("ERROR", message);
+        std::string output = formatLog(LOG_ERROR, message);
         std::fputs(output.c_str(), stderr);
     }
 
     template<typename... Args>
     inline void error(std::string message, Args... args)
     {
-        std::string output = formatLog("ERROR", message);
+        std::string output = formatLog(LOG_ERROR, message);
         std::fprintf(stderr, output.c_str(), args...);
     }
 }
