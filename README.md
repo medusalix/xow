@@ -134,6 +134,8 @@ sudo systemctl kill -s SIGUSR1 xow
 - `LIBUSB_ERROR_ACCESS`
     - The permissions for the dongle's USB device have to be set correctly. This is also handled by the `udev` rules.
 
+Using an outdated version of `libusb` can cause various issues. Make sure to update `libusb` to the latest version.
+
 ### Pairing problems
 
 The controller only remembers the *last* device it was connected to. It will not automatically establish a connection to the dongle if it was previously plugged into a USB port or paired via bluetooth, even if the same computer was used.
