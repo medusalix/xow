@@ -9,6 +9,9 @@
     <a href="https://github.com/medusalix/xow/releases/latest">
         <img src="https://img.shields.io/github/v/release/medusalix/xow" alt="Release Badge">
     </a>
+    <a href="https://discord.gg/FDQxwWk">
+        <img src="https://img.shields.io/discord/733964971842732042" alt="Discord Badge">
+    </a>
     <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=PLN6F3UGS37DE&lc=US">
         <img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" alt="Donate Button">
     </a>
