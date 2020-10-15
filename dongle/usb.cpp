@@ -131,12 +131,13 @@ int UsbDevice::bulkRead(
 
 bool UsbDevice::bulkWrite(uint8_t endpoint, Bytes &data)
 {
+    int transferred = 0;
     int error = libusb_bulk_transfer(
         handle,
         endpoint | LIBUSB_ENDPOINT_OUT,
         data.raw(),
         data.size(),
-        nullptr,
+        &transferred,
         USB_TIMEOUT_WRITE
     );
 
