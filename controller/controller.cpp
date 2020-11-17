@@ -98,7 +98,7 @@ void Controller::statusReceived(uint8_t id, const StatusData *status)
 
 void Controller::guideButtonPressed(const GuideButtonData *button)
 {
-    inputDevice.setKey(BTN_MODE, button->pressed);
+    inputDevice.setKey(KEY_HOMEPAGE, button->pressed);
     inputDevice.report();
 }
 
@@ -193,7 +193,7 @@ void Controller::initInput(const AnnounceData *announce)
     dpadConfig.minimum = -1;
     dpadConfig.maximum = 1;
 
-    inputDevice.addKey(BTN_MODE);
+    inputDevice.addKey(KEY_HOMEPAGE);
     inputDevice.addKey(BTN_START);
     inputDevice.addKey(BTN_SELECT);
     inputDevice.addKey(BTN_A);
