@@ -36,9 +36,9 @@ firmware.o: firmware.bin
 
 firmware.bin:
 	curl -o driver.cab $(DRIVER_URL)
-	cabextract -F FW_ACC_00U.bin driver.cab
-	echo $(FIRMWARE_HASH) FW_ACC_00U.bin | sha256sum -c
-	mv FW_ACC_00U.bin firmware.bin
+	cabextract -F FW_ACC_BR.bin driver.cab
+	echo $(FIRMWARE_HASH) FW_ACC_BR.bin | sha256sum -c
+	mv FW_ACC_BR.bin firmware.bin
 	$(RM) driver.cab
 
 .PHONY: install
