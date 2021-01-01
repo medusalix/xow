@@ -34,6 +34,9 @@
 #define DONGLE_PID_OLD 0x02e6
 #define DONGLE_PID_NEW 0x02fe
 
+// Product ID for Microsoft Surface Book 2 built-in dongle
+#define DONGLE_PID_SURFACE 0x091e
+
 /*
  * Handles received 802.11 packets
  * Delegates GIP (Game Input Protocol) packets to controllers
