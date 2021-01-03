@@ -63,7 +63,8 @@ int main()
     );
     std::unique_ptr<UsbDevice> device = manager.getDevice({
         { DONGLE_VID, DONGLE_PID_OLD },
-        { DONGLE_VID, DONGLE_PID_NEW }
+        { DONGLE_VID, DONGLE_PID_NEW },
+        { DONGLE_VID, DONGLE_PID_SURFACE }
     }, terminate);
 
     // Block signals and pass them to the signalfd
