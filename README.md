@@ -36,7 +36,7 @@ The package is automatically downloaded and extracted during the build process d
 
 ## Supported devices
 
-xow supports both versions of the wireless dongle (slim and bulky one).
+xow supports both versions of the wireless dongle (slim and bulky one) and the Surface Book 2's built-in adapter.
 The following Xbox One controllers are currently compatible with the driver:
 
 | Model number | Year | Additional information    | Status       |
