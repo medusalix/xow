@@ -45,7 +45,7 @@ void LoggerSyslog::sinkLog(Level level, const std::string& message) {
             break;
     }
 
-    syslog(priority, message.c_str());
+    syslog(priority, "%s", message.c_str());
 }
 
 }
