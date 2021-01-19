@@ -31,7 +31,7 @@ void LoggerConsole::init() {
 void LoggerConsole::sinkLog(Level level, const std::string& message) {
     FILE* outstream = stdout;
 
-    if(level == Level::LOG_ERROR) {
+    if(level == Level::LOGLEVEL_ERROR) {
         outstream = stderr;
     }
     std::fputs(formatLog(level, message).c_str(), outstream);

@@ -43,7 +43,7 @@ namespace Log
     inline void debug(std::string message)
     {
         #ifdef DEBUG
-        LoggerInstance::logger().sinkLog(Level::LOG_DEBUG, message);
+        LoggerInstance::logger().sinkLog(Level::LOGLEVEL_DEBUG, message);
         #endif
     }
 
@@ -52,31 +52,31 @@ namespace Log
     {
         #ifdef DEBUG
         FORMAT_BUFFER(formated_message);
-        LoggerInstance::logger().sinkLog(Level::LOG_DEBUG, formated_message);
+        LoggerInstance::logger().sinkLog(Level::LOGLEVEL_DEBUG, formated_message);
         #endif
     }
 
     inline void info(std::string message)
     {
-        LoggerInstance::logger().sinkLog(Level::LOG_INFO, message);
+        LoggerInstance::logger().sinkLog(Level::LOGLEVEL_INFO, message);
     }
 
     template<typename... Args>
     inline void info(std::string message, Args... args)
     {
         FORMAT_BUFFER(formated_message);
-        LoggerInstance::logger().sinkLog(Level::LOG_INFO, formated_message);
+        LoggerInstance::logger().sinkLog(Level::LOGLEVEL_INFO, formated_message);
     }
 
     inline void error(std::string message)
     {
-        LoggerInstance::logger().sinkLog(Level::LOG_ERROR, message);
+        LoggerInstance::logger().sinkLog(Level::LOGLEVEL_ERROR, message);
     }
 
     template<typename... Args>
     inline void error(std::string message, Args... args)
     {
         FORMAT_BUFFER(formated_message);
-        LoggerInstance::logger().sinkLog(Level::LOG_ERROR, formated_message);
+        LoggerInstance::logger().sinkLog(Level::LOGLEVEL_ERROR, formated_message);
     }
 }

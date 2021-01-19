@@ -24,9 +24,9 @@ namespace Log
 {
 
 enum class Level {
-  LOG_DEBUG,
-  LOG_INFO,
-  LOG_ERROR
+  LOGLEVEL_DEBUG,
+  LOGLEVEL_INFO,
+  LOGLEVEL_ERROR
 };
 
 class ILogger {
@@ -40,13 +40,13 @@ public:
 
 inline std::ostream& operator<<(std::ostream& os, const Level& level) {
     switch(level) {
-        case Level::LOG_DEBUG:
+        case Level::LOGLEVEL_DEBUG:
           os << "DEBUG";
           break;
-        case Level::LOG_INFO:
+        case Level::LOGLEVEL_INFO:
           os << "INFO";
           break;
-        case Level::LOG_ERROR:
+        case Level::LOGLEVEL_ERROR:
           os << "ERROR";
           break;
     }
