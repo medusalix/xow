@@ -21,6 +21,7 @@
 #include <memory>
 
 #include "logger_console.h"
+#include "logger_syslog.h"
 
 namespace Log
 {
@@ -31,13 +32,26 @@ public:
     void operator=(const LoggerInstance&) = delete;
     ~LoggerInstance() = default;
 
-    static ILogger& logger() {
+    static LoggerInstance& instance() {
         static LoggerInstance instance;
-        return *instance._logger;
+        return instance;
+    }
+
+    static ILogger& logger() {
+        return instance().getLogger();
+    }
+
+    ILogger& getLogger() {
+        return *_logger;
+    }
+
+    void installSysloger() {
+        _logger = std::make_unique<LoggerSyslog>();
     }
 
 private:
     std::unique_ptr<ILogger> _logger;
+
     LoggerInstance():
         _logger(std::make_unique<LoggerConsole>()) {
     };
