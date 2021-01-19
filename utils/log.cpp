@@ -43,23 +43,4 @@ namespace Log
 
         return output;
     }
-
-    std::string formatLog(std::string level, std::string message)
-    {
-        std::ostringstream stream;
-        std::time_t time = std::time(nullptr);
-        std::tm localTime = {};
-
-        // Add local time to output if available
-        if (localtime_r(&time, &localTime))
-        {
-            stream << std::put_time(&localTime, "%F %T") << " ";
-        }
-
-        stream << std::left << std::setw(5);
-        stream << level << " - ";
-        stream << message << std::endl;
-
-        return stream.str();
-    }
 }

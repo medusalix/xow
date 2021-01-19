@@ -18,9 +18,14 @@
 
 #pragma once
 
-#include <string>
+#include "logger_instance.h"
 
 class Bytes;
+
+inline const int LOG_BUFFER_SIZE = 128;
+#define FORMAT_BUFFER(buffer_name) \
+    char buffer_name[LOG_BUFFER_SIZE]; \
+    std::snprintf(buffer_name, LOG_BUFFER_SIZE, message.c_str(), args...)
 
 /*
  * Provides logging functions for different log levels
@@ -29,19 +34,16 @@ class Bytes;
 namespace Log
 {
     std::string formatBytes(const Bytes &bytes);
-    std::string formatLog(std::string level, std::string message);
 
     inline void init()
     {
-        // Switch to line buffering
-        setlinebuf(stdout);
+        LoggerInstance::logger().init();
     }
 
     inline void debug(std::string message)
     {
         #ifdef DEBUG
-        std::string output = formatLog("DEBUG", message);
-        std::fputs(output.c_str(), stdout);
+        LoggerInstance::logger().sinkLog(Level::LOG_DEBUG, message);
         #endif
     }
 
@@ -49,34 +51,32 @@ namespace Log
     inline void debug(std::string message, Args... args)
     {
         #ifdef DEBUG
-        std::string output = formatLog("DEBUG", message);
-        std::fprintf(stdout, output.c_str(), args...);
+        FORMAT_BUFFER(formated_message);
+        LoggerInstance::logger().sinkLog(Level::LOG_DEBUG, formated_message);
         #endif
     }
 
     inline void info(std::string message)
     {
-        std::string output = formatLog("INFO", message);
-        std::fputs(output.c_str(), stdout);
+        LoggerInstance::logger().sinkLog(Level::LOG_INFO, message);
     }
 
     template<typename... Args>
     inline void info(std::string message, Args... args)
     {
-        std::string output = formatLog("INFO", message);
-        std::fprintf(stdout, output.c_str(), args...);
+        FORMAT_BUFFER(formated_message);
+        LoggerInstance::logger().sinkLog(Level::LOG_INFO, formated_message);
     }
 
     inline void error(std::string message)
     {
-        std::string output = formatLog("ERROR", message);
-        std::fputs(output.c_str(), stderr);
+        LoggerInstance::logger().sinkLog(Level::LOG_ERROR, message);
     }
 
     template<typename... Args>
     inline void error(std::string message, Args... args)
     {
-        std::string output = formatLog("ERROR", message);
-        std::fprintf(stderr, output.c_str(), args...);
+        FORMAT_BUFFER(formated_message);
+        LoggerInstance::logger().sinkLog(Level::LOG_ERROR, formated_message);
     }
 }
