@@ -33,6 +33,7 @@ void usage(const char* bin_path) {
     std::cout << bin_path << ": " << std::endl;
     std::cout << "-h | --help       Show this help message" << std::endl;
     std::cout << "-v | --version    Print version" << std::endl;
+    std::cout << "-s | --syslog     Log to syslog" << std::endl;
 }
 
 int parseArgs(int argc, char* argv[])
@@ -40,12 +41,13 @@ int parseArgs(int argc, char* argv[])
     static struct option long_options[] = {
         {"help",      no_argument,        0,  'h'},
         {"version",   no_argument,        0,  'v'},
+        {"syslog",    no_argument,        0,  's'},
         {0,           0,                  0,  0  }};
 
     while(1) {
         int option;
 
-        option = getopt_long(argc, argv, "hv", long_options, 0);
+        option = getopt_long(argc, argv, "hvs", long_options, 0);
         if(option == -1)
         {
             break;
@@ -58,6 +60,9 @@ int parseArgs(int argc, char* argv[])
             case 'v':
                 std::cout << "xow " << VERSION << std::endl;
                 return 0;
+            case 's':
+                Log::LoggerInstance::instance().installSysloger();
+                break;
             case '?':
             default:
                 usage(argv[0]);
