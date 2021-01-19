@@ -21,12 +21,61 @@
 #include "dongle/usb.h"
 #include "dongle/dongle.h"
 
+#include <getopt.h>
+
 #include <cstring>
 #include <csignal>
+#include <iostream>
 #include <sys/signalfd.h>
 
-int main()
+void usage(const char* bin_path) {
+    std::cout << "xow (c) 2019 Medusalix" << std::endl;
+    std::cout << bin_path << ": " << std::endl;
+    std::cout << "-h | --help       Show this help message" << std::endl;
+    std::cout << "-v | --version    Print version" << std::endl;
+}
+
+int parseArgs(int argc, char* argv[])
 {
+    static struct option long_options[] = {
+        {"help",      no_argument,        0,  'h'},
+        {"version",   no_argument,        0,  'v'},
+        {0,           0,                  0,  0  }};
+
+    while(1) {
+        int option;
+
+        option = getopt_long(argc, argv, "hv", long_options, 0);
+        if(option == -1)
+        {
+            break;
+        }
+
+        switch(option) {
+            case 'h':
+                usage(argv[0]);
+                return 0;
+            case 'v':
+                std::cout << "xow " << VERSION << std::endl;
+                return 0;
+            case '?':
+            default:
+                usage(argv[0]);
+                return -1;
+        }
+    }
+
+    return 1;
+}
+
+int main(int argc, char* argv[])
+{
+    switch(parseArgs(argc, argv)) {
+        case 1: break;
+        case 0: return 0;
+        default: return -1;
+    }
+
     Log::init();
     Log::info("xow %s ©Severin v. W.", VERSION);
 
