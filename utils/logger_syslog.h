@@ -28,6 +28,8 @@ public:
     LoggerSyslog() = default;
     ~LoggerSyslog();
 
+    static int logLevelToSyslog(Level level);
+
     virtual void init() override;
     virtual void sinkLog(Level level, const std::string& message) override;
 

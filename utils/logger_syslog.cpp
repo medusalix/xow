@@ -26,26 +26,23 @@ LoggerSyslog::~LoggerSyslog() {
     closelog();
 }
 
+int LoggerSyslog::logLevelToSyslog(Level level) {
+    switch(level) {
+        case Level::LOGLEVEL_DEBUG:
+            return LOG_DEBUG;
+        case Level::LOGLEVEL_INFO:
+            return LOG_INFO;
+        default:
+            return LOG_ERR;
+    }
+}
+
 void LoggerSyslog::init() {
     openlog(nullptr, LOG_CONS, LOG_DAEMON);
 }
 
 void LoggerSyslog::sinkLog(Level level, const std::string& message) {
-    int priority;
-
-    switch(level) {
-        case Level::LOGLEVEL_DEBUG:
-            priority = LOG_DEBUG;
-            break;
-        case Level::LOGLEVEL_INFO:
-            priority = LOG_INFO;
-            break;
-        default:
-            priority = LOG_ERR;
-            break;
-    }
-
-    syslog(priority, "%s", message.c_str());
+    syslog(logLevelToSyslog(level), "%s", message.c_str());
 }
 
 }
