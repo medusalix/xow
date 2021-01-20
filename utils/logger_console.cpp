@@ -18,6 +18,7 @@
 #include <sstream>
 #include <iomanip>
 
+#include "logger_syslog.h"
 #include "logger_console.h"
 
 namespace Log
@@ -39,17 +40,20 @@ void LoggerConsole::sinkLog(Level level, const std::string& message) {
 
 std::string LoggerConsole::formatLog(Level level, const std::string& message) {
     std::ostringstream stream;
-    std::time_t time = std::time(nullptr);
-    std::tm localTime = {};
 
-    // Add local time to output if available
-    if (localtime_r(&time, &localTime))
-    {
-        stream << std::put_time(&localTime, "%F %T") << " ";
+     // Add local time to output if available and not logging to journald
+     if(!getenv("JOURNAL_STREAM")) {
+        std::time_t time = std::time(nullptr);
+        std::tm localTime = {};
+        if (localtime_r(&time, &localTime)) {
+            stream << std::put_time(&localTime, "%F %T") << " ";
+        }
+        stream << "[" << std::left << std::setw(5);
+        stream << level << "] ";
+    } else {
+        stream << "<" << LoggerSyslog::logLevelToSyslog(level) << ">";
     }
 
-    stream << std::left << std::setw(5);
-    stream << level << " - ";
     stream << message << std::endl;
 
     return stream.str();
