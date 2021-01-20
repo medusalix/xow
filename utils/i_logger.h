@@ -18,7 +18,9 @@
 #ifndef XOW_I_LOGGER_H_
 #define XOW_I_LOGGER_H_
 
-#include <ostream>
+#include <sstream>
+#include <iomanip>
+#include <thread>
 
 namespace Log
 {
@@ -36,6 +38,15 @@ public:
 
     virtual void init() = 0;
     virtual void sinkLog(Level level, const std::string& message) = 0;
+
+    static void prependThreadId(std::string& message) {
+        std::stringstream ss;
+
+        ss << "[" << std::hex << std::setw(16) << std::right;
+        ss << std::this_thread::get_id() << "] - ";
+
+        message = ss.str() + message;
+    }
 };
 
 inline std::ostream& operator<<(std::ostream& os, const Level& level) {
