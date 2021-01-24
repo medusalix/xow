@@ -22,7 +22,8 @@
 #include <atomic>
 
 /*
- * Lock-free triple buffer implementation
+ * Single consumer/producer lock-free triple buffer implementation
+ * Concurrent access from multiple consumers or producers requires locking
  */
 template<typename T>
 class Buffer
