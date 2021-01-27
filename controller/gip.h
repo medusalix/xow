@@ -27,13 +27,13 @@ class Bytes;
 /*
  * Base class for GIP (Game Input Protocol) devices
  * Performs basic handshake process:
- *   <- Info                (from controller)
- *   -> Authenticate        (from dongle, unused)
- *   <- Authenticate        (from controller, unused)
+ *   <- Announce            (from controller)
+ *   -> Identify            (from dongle, unused)
+ *   <- Identify            (from controller, unused)
  *   -> Power mode: on      (from dongle)
  *   -> LED mode: dim       (from dongle)
- *   -> Read EEPROM         (from dongle, unused)
- *   <- Read EEPROM         (from controller, unused)
+ *   -> Authenticate        (from dongle, unused)
+ *   <- Authenticate        (from controller, unused)
  *   -> Serial number: 0x00 (from dongle, unused)
  *   <- Serial number       (from controller, unused)
  *   -> Serial number: 0x04 (from dongle)
