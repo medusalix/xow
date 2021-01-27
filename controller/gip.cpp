@@ -76,6 +76,12 @@ bool GipDevice::handlePacket(const Bytes &packet)
         return false;
     }
 
+    // Ignore packets from accessories
+    if (frame->deviceId > 0)
+    {
+        return true;
+    }
+
     const Bytes data(packet, sizeof(Frame));
 
     // Data is 32-bit aligned, check for minimum size
