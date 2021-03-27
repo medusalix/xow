@@ -1,15 +1,15 @@
 BUILD := DEBUG
 VERSION := $(shell git describe --tags)
 
-FLAGS := -Wall -Wpedantic -std=c++11 -MMD -MP
+FLAGS := -Wall -Wpedantic -std=c++11 -MMD -MP -Iexternal/headers
 DEBUG_FLAGS := -Og -g -DDEBUG
 RELEASE_FLAGS := -O3
 DEFINES := -DVERSION=\"$(VERSION)\"
 
 CXXFLAGS += $(FLAGS) $($(BUILD)_FLAGS) $(DEFINES)
-LDLIBS += -lpthread -lusb-1.0
+LDLIBS += -lpthread -ludev
 SOURCES := $(wildcard *.cpp) $(wildcard */*.cpp)
-OBJECTS := $(SOURCES:.cpp=.o) firmware.o
+OBJECTS := $(SOURCES:.cpp=.o) firmware.o libusb-1.0.a
 DEPENDENCIES := $(SOURCES:.cpp=.d)
 
 DRIVER_URL := http://download.windowsupdate.com/c/msdownload/update/driver/drvs/2017/07/1cd6a87c-623f-4407-a52d-c31be49e925c_e19f60808bdcbfbd3c3df6be3e71ffc52e43261e.cab
@@ -33,6 +33,11 @@ xow: $(OBJECTS)
 
 firmware.o: firmware.bin
 	$(LD) -r -b binary -z noexecstack -o $@ $<
+
+libusb-1.0.a:
+	cd external/libusb && ./autogen.sh
+	make -C external/libusb
+	cp external/libusb/libusb/.libs/libusb-1.0.a .
 
 firmware.bin:
 	curl -o driver.cab $(DRIVER_URL)

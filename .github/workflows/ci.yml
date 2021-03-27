@@ -5,9 +5,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Install prerequisites
-      run: sudo apt update && sudo apt install curl cabextract libusb-1.0-0-dev
+      run: sudo apt update && sudo apt install curl cabextract libudev-dev
     - name: Checkout
       uses: actions/checkout@v2
+      with:
+        submodules: true
     - name: Make (debug)
       run: make clean && make BUILD=DEBUG
     - name: Make (release)

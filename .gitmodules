@@ -1,0 +1,4 @@
+[submodule "external/libusb"]
+	path = external/libusb
+	url = https://github.com/libusb/libusb
+	branch = refs/tags/v1.0.23

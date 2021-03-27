@@ -3,4 +3,5 @@ firmware.bin
 xow
 *.d
 *.o
+*.a
 .vscode/*
