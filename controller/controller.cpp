@@ -92,6 +92,8 @@ void Controller::deviceAnnounced(uint8_t id, const AnnounceData *announce)
 
 void Controller::statusReceived(uint8_t id, const StatusData *status)
 {
+    const std::string levels[] = { "empty", "low", "medium", "full" };
+
     uint8_t type = status->batteryType;
     uint8_t level = status->batteryLevel;
 
@@ -101,7 +103,7 @@ void Controller::statusReceived(uint8_t id, const StatusData *status)
         return;
     }
 
-    Log::info("Battery level: %d", level);
+    Log::info("Battery level: %s", levels[level].c_str());
 
     batteryLevel = level;
 }
