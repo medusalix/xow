@@ -20,6 +20,7 @@
 #include "../utils/log.h"
 
 #include <chrono>
+#include <fstream>
 
 #define BITS_PER_LONG (sizeof(long) * 8)
 #define BIT(nr) (1UL << (nr))
@@ -809,9 +810,6 @@
 #define MT_CH_POWER_MIN 0x00
 #define MT_CH_POWER_MAX 0x2f
 
-extern const uint8_t _binary_firmware_bin_start[];
-extern const uint8_t _binary_firmware_bin_end[];
-
 Mt76::Mt76(
     std::unique_ptr<UsbDevice> usbDevice
 ) : usbDevice(std::move(usbDevice))
@@ -1450,10 +1448,32 @@ bool Mt76::loadFirmware()
     controlWrite(MT_FCE_PDMA_GLOBAL_CONF, 0x44);
     controlWrite(MT_FCE_SKIP_FS, 0x03);
 
+    std::ifstream firmwareFile(FIRMWARE, std::ios::binary | std::ios::ate);
+    if (!firmwareFile)
+    {
+        Log::error("Failed to open firmware binary " FIRMWARE "\n\n"
+		"You can get the firmware using: xow-get-firmware.sh\n");
+
+        return false;
+    }
+    size_t blobSize = firmwareFile.tellg();
+    firmwareFile.seekg(0, std::ios::beg);
+
+    uint8_t* blob = new uint8_t[blobSize];
+    if (!firmwareFile.read((char*)blob, blobSize))
+    {
+        Log::error("Failed to load firmware into memory");
+        delete[] blob;
+
+        return false;
+    }
+
     const Bytes firmware(
-        _binary_firmware_bin_start,
-        _binary_firmware_bin_end
+        blob,
+        blob + blobSize
     );
+
+    delete[] blob;
 
     const FwHeader *header = firmware.toStruct<FwHeader>();
     Bytes::Iterator ilmStart = firmware.begin() + sizeof(FwHeader);
