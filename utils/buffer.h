@@ -18,12 +18,12 @@
 
 #pragma once
 
-#include <memory>
 #include <atomic>
+#include <memory>
+#include <mutex>
 
 /*
- * Single consumer/producer lock-free triple buffer implementation
- * Concurrent access from multiple consumers or producers requires locking
+ * Lock-free triple buffer implementation
  */
 template<typename T>
 class Buffer
@@ -33,6 +33,8 @@ public:
 
     void put(const T &data)
     {
+        std::lock_guard<std::mutex> lock(put_mutex);
+
         *back = data;
 
         // Swap middle buffer with back buffer
@@ -44,6 +46,8 @@ public:
 
     bool get(T &data)
     {
+        std::lock_guard<std::mutex> lock(get_mutex);
+
         if (!std::atomic_exchange(&queued, false))
         {
             return false;
@@ -59,6 +63,7 @@ public:
     }
 
 private:
-    std::shared_ptr<T> back, middle, front;
-    std::atomic<bool> queued;
+  std::mutex put_mutex, get_mutex;
+  std::shared_ptr<T> back, middle, front;
+  std::atomic<bool> queued;
 };

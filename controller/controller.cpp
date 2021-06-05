@@ -298,72 +298,52 @@ void Controller::inputFeedbackReceived(
     rumble.setRightTrigger = true;
     rumble.setLeftTrigger = true;
 
-    if (replayCount == 0 || gain == 0)
-    {
-        rumbleBuffer.put(rumble);
-        rumbleCondition.notify_one();
+    if ((replayCount > 0) && (gain > 0)) {
+        Log::debug("Rumble strong: %d, weak: %d, direction: %d", effect.u.rumble.strong_magnitude,
+                   effect.u.rumble.weak_magnitude, effect.direction);
 
-        return;
+        // Apply force feedback gain
+        uint16_t weak = static_cast<uint32_t>(effect.u.rumble.strong_magnitude) * gain / 0xffff;
+        uint16_t strong = static_cast<uint32_t>(effect.u.rumble.weak_magnitude) * gain / 0xffff;
+
+        // Map effect's magnitudes to rumble power
+        rumble.left = weak * RUMBLE_MAX_POWER / 0xffff;
+        rumble.right = strong * RUMBLE_MAX_POWER / 0xffff;
+
+        // Upper half of the controller (from left to right)
+        if (effect.direction >= 0x4000 && effect.direction <= 0xc000) {
+            // Angle shifted by an eighth of a full circle
+            float angle = static_cast<float>(effect.direction) / 0xffff - 0.125;
+            float left = sin(2 * M_PI * angle);
+            float right = cos(2 * M_PI * angle);
+            uint8_t maxPower = rumble.left > rumble.right ? rumble.left : rumble.right;
+
+            // Limit values to left and right areas
+            left = left > 0 ? left : 0;
+            right = right < 0 ? -right : 0;
+
+            // The trigger motors are very strong
+            rumble.leftTrigger = left * maxPower / 2;
+            rumble.rightTrigger = right * maxPower / 2;
+        }
+
+        uint16_t duration = effect.replay.length / 10;
+        uint16_t delay = effect.replay.delay / 10;
+
+        // Use maximum duration if not specified or out of range
+        if (duration == 0x00 || duration > 0xff) {
+            duration = 0xff;
+        }
+
+        if (delay > 0xff) {
+            delay = 0xff;
+        }
+
+        // Time in multiples of 10 ms
+        rumble.duration = duration;
+        rumble.delay = delay;
+        rumble.repeat = replayCount - 1;
     }
-
-    Log::debug(
-        "Rumble strong: %d, weak: %d, direction: %d",
-        effect.u.rumble.strong_magnitude,
-        effect.u.rumble.weak_magnitude,
-        effect.direction
-    );
-
-    // Apply force feedback gain
-    uint16_t weak = static_cast<uint32_t>(
-        effect.u.rumble.strong_magnitude
-    ) * gain / 0xffff;
-    uint16_t strong = static_cast<uint32_t>(
-        effect.u.rumble.weak_magnitude
-    ) * gain / 0xffff;
-
-    // Map effect's magnitudes to rumble power
-    rumble.left = weak * RUMBLE_MAX_POWER / 0xffff;
-    rumble.right = strong * RUMBLE_MAX_POWER / 0xffff;
-
-    // Upper half of the controller (from left to right)
-    if (effect.direction >= 0x4000 && effect.direction <= 0xc000)
-    {
-        // Angle shifted by an eighth of a full circle
-        float angle = static_cast<float>(effect.direction) / 0xffff - 0.125;
-        float left = sin(2 * M_PI * angle);
-        float right = cos(2 * M_PI * angle);
-        uint8_t maxPower = rumble.left > rumble.right ?
-            rumble.left :
-            rumble.right;
-
-        // Limit values to left and right areas
-        left = left > 0 ? left : 0;
-        right = right < 0 ? -right : 0;
-
-        // The trigger motors are very strong
-        rumble.leftTrigger = left * maxPower / 2;
-        rumble.rightTrigger = right * maxPower / 2;
-    }
-
-    uint16_t duration = effect.replay.length / 10;
-    uint16_t delay = effect.replay.delay / 10;
-
-    // Use maximum duration if not specified or out of range
-    if (duration == 0x00 || duration > 0xff)
-    {
-        duration = 0xff;
-    }
-
-    if (delay > 0xff)
-    {
-        delay = 0xff;
-    }
-
-    // Time in multiples of 10 ms
-    rumble.duration = duration;
-    rumble.delay = delay;
-    rumble.repeat = replayCount - 1;
-
     rumbleBuffer.put(rumble);
     rumbleCondition.notify_one();
 }

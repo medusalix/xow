@@ -2,13 +2,9 @@
 Description=Xbox One Wireless Dongle Driver
 
 [Service]
-Type=idle
 ExecStart=#BINDIR#/xow
 DynamicUser=true
 Restart=on-success
 
 # Uncomment the following line to enable compatibility mode
 # Environment="XOW_COMPATIBILITY=1"
-
-[Install]
-WantedBy=multi-user.target
