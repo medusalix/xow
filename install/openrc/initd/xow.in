@@ -1,0 +1,27 @@
+#!/sbin/openrc-run
+
+description="Xbox One Wireless Dongle Driver"
+command="#BINDIR#/xow"
+
+command_user="${XOW_USER:-nobody}:${XOW_GROUP:-nobody}"
+supervisor="supervise-daemon"
+output_log="/var/log/${RC_SVCNAME}.log"
+error_log="${output_log}"
+
+extra_started_commands="pair"
+description_pair="Enable dongle pairing mode"
+
+depend() {
+    keyword -lxc -openvz -docker
+}
+
+start_pre() {
+    checkpath -q \
+        --owner "${command_user}" \
+        --file "${output_log}"
+}
+
+pair() {
+    "${supervisor}" "${RC_SVCNAME}" \
+        --signal USR1
+}
