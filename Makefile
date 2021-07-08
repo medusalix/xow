@@ -1,5 +1,6 @@
 BUILD := DEBUG
 VERSION := $(shell git describe --tags)
+FIRMWARE := "/lib/firmware/xow_dongle.bin"
 
 FLAGS := -Wall -Wpedantic -std=c++11 -MMD -MP
 DEBUG_FLAGS := -Og -g -DDEBUG
@@ -23,7 +24,7 @@ MODPDIR := /etc/modprobe.d
 SYSDDIR := /etc/systemd/system
 
 .PHONY: all
-all: xow xow.service
+all: xow xow-get-firmware.sh xow.service
 
 xow: $(OBJECTS)
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LDLIBS)
@@ -41,12 +42,17 @@ firmware.bin:
 	mv FW_ACC_00U.bin firmware.bin
 	$(RM) driver.cab
 
+xow-get-firmware.sh: install/xow-get-firmware.sh.in
+	sed "s|#FIRMWARE#|$(FIRMWARE)|" $< > $@
+
 xow.service: install/service.in
 	sed 's|#BINDIR#|$(BINDIR)|' $< > $@
+
 
 .PHONY: install
 install: all
 	install -D -m 755 xow $(DESTDIR)$(BINDIR)/xow
+	install -D -m 755 xow-get-firmware.sh $(DESTDIR)$(BINDIR)/xow-get-firmware.sh
 	install -D -m 644 install/udev.rules $(DESTDIR)$(UDEVDIR)/50-xow.rules
 	install -D -m 644 install/modules.conf $(DESTDIR)$(MODLDIR)/xow-uinput.conf
 	install -D -m 644 install/modprobe.conf $(DESTDIR)$(MODPDIR)/xow-blacklist.conf
@@ -55,6 +61,7 @@ install: all
 .PHONY: uninstall
 uninstall:
 	$(RM) $(DESTDIR)$(BINDIR)/xow
+	$(RM) $(DESTDIR)$(BINDIR)/xow-get-firmware.sh
 	$(RM) $(DESTDIR)$(UDEVDIR)/50-xow.rules
 	$(RM) $(DESTDIR)$(MODLDIR)/xow-uinput.conf
 	$(RM) $(DESTDIR)$(MODPDIR)/xow-blacklist.conf
@@ -63,6 +70,7 @@ uninstall:
 .PHONY: clean
 clean:
 	$(RM) xow $(OBJECTS) $(DEPENDENCIES)
+	$(RM) xow-get-firmware.sh
 	$(RM) xow.service
 
 -include $(DEPENDENCIES)
