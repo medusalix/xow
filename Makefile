@@ -23,7 +23,7 @@ MODPDIR := /etc/modprobe.d
 SYSDDIR := /etc/systemd/system
 
 .PHONY: all
-all: xow
+all: xow xow.service
 
 xow: $(OBJECTS)
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LDLIBS)
@@ -41,15 +41,16 @@ firmware.bin:
 	mv FW_ACC_00U.bin firmware.bin
 	$(RM) driver.cab
 
+xow.service: install/service.in
+	sed 's|#BINDIR#|$(BINDIR)|' $< > $@
+
 .PHONY: install
 install: all
-	sed 's|#BINDIR#|$(BINDIR)|' install/service.in > xow.service
 	install -D -m 755 xow $(DESTDIR)$(BINDIR)/xow
 	install -D -m 644 install/udev.rules $(DESTDIR)$(UDEVDIR)/50-xow.rules
 	install -D -m 644 install/modules.conf $(DESTDIR)$(MODLDIR)/xow-uinput.conf
 	install -D -m 644 install/modprobe.conf $(DESTDIR)$(MODPDIR)/xow-blacklist.conf
 	install -D -m 644 xow.service $(DESTDIR)$(SYSDDIR)/xow.service
-	$(RM) xow.service
 
 .PHONY: uninstall
 uninstall:
@@ -62,5 +63,6 @@ uninstall:
 .PHONY: clean
 clean:
 	$(RM) xow $(OBJECTS) $(DEPENDENCIES)
+	$(RM) xow.service
 
 -include $(DEPENDENCIES)
