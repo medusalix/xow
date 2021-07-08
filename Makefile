@@ -42,7 +42,7 @@ firmware.bin:
 	$(RM) driver.cab
 
 .PHONY: install
-install: xow
+install: all
 	sed 's|#BINDIR#|$(BINDIR)|' install/service.in > xow.service
 	install -D -m 755 xow $(DESTDIR)$(BINDIR)/xow
 	install -D -m 644 install/udev.rules $(DESTDIR)$(UDEVDIR)/50-xow.rules
