@@ -35,7 +35,7 @@ firmware.o: firmware.bin
 	$(LD) -r -b binary -z noexecstack -o $@ $<
 
 firmware.bin:
-	curl -o driver.cab $(DRIVER_URL)
+	curl -L -o driver.cab $(DRIVER_URL)
 	cabextract -F FW_ACC_00U.bin driver.cab
 	echo $(FIRMWARE_HASH) FW_ACC_00U.bin | sha256sum -c
 	mv FW_ACC_00U.bin firmware.bin
