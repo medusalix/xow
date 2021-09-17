@@ -18,6 +18,7 @@
 
 #include "dongle.h"
 #include "../utils/log.h"
+#include "../utils/macros.h"
 
 Dongle::Dongle(
     std::unique_ptr<UsbDevice> usbDevice
@@ -269,7 +270,9 @@ void Dongle::handleBulkData(const Bytes &data)
 
             case EVT_CLIENT_LOST:
                 // Packet is guaranteed not to be empty
+                #if IS_PROP_ENABLED(EMPTY_PACKET_DISCONNECT)
                 handleControllerDisconnect(packet[0]);
+                #endif
                 break;
         }
     }

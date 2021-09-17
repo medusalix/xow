@@ -163,6 +163,15 @@ The controller only remembers the *last* device it was connected to. It will not
 Some USB controllers are known to cause issues with xow. Plugging your dongle into a USB port that uses an `ASMedia` controller will lead to problems. Most `Intel` USB controllers work well with xow.
 Power management issues can arise when using a USB 3 controller. These can lead to timeouts of the USB communication. The use of a USB hub can mitigate these problems.
 
+### Controller periodically disconnects (when idle)
+Some controllers might periodically disconnect due to xow receiving an empty packet (which should not happen for most controllers).
+This usually happens when the controller is not receiving any input, but can still happen when being used.
+As a result, you can disable the automatic disconnect when building by using the `EMPTY_PACKET_DISCONNECT` flag as shown below:
+
+```
+make BUILD=RELEASE EMPTY_PACKET_DISCONNECT=0
+```
+
 ### Other problems
 
 In case of any other problems, please open an issue with all the relevant details (dongle version, controller version, logs, captures, etc.).
