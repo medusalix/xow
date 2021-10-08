@@ -1991,7 +1991,7 @@ Bytes Mt76::efuseRead(uint8_t address, uint8_t length)
     Bytes data;
 
     bool successful = pollTimeout([this] {
-        return MT_EFUSE_CTRL & MT_EFUSE_CTRL_KICK;
+        return controlRead(MT_EFUSE_CTRL) & MT_EFUSE_CTRL_KICK;
     });
 
     if (!successful)
