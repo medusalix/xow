@@ -39,7 +39,7 @@ parse_args() {
 fail() { echo "$1" >&2; exit 1; }
 
 check_program() {
-    hash "$1" >/dev/null 2>&1 || fail "Cannot find $1 - required to $2 the firmware ${3:-}"
+    [ -x "$(command -v $1)" ] || fail "Cannot find $1 - required to $2 the firmware ${3:-}."
 }
 
 check_root() {
@@ -49,7 +49,6 @@ check_root() {
 check_programs() {
     check_program "curl" "download"
     check_program "cabextract" "extract"
-    check_program "sha256sum" "verify"
 }
 
 disclaimer() {
