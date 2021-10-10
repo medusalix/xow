@@ -1408,6 +1408,28 @@ bool Mt76::initChannels()
 
 bool Mt76::loadFirmware()
 {
+    std::ifstream file(FIRMWARE, std::ios::binary | std::ios::ate);
+
+    if (!file)
+    {
+        Log::error("Failed to open %s", FIRMWARE);
+        Log::info("Run xow-get-firmware.sh to download the firmware");
+
+        return false;
+    }
+
+    std::streampos fileSize = file.tellg();
+    Bytes firmware(fileSize);
+
+    file.seekg(0, std::ios::beg);
+
+    if (!file.read(reinterpret_cast<char*>(firmware.raw()), fileSize))
+    {
+        Log::error("Failed to read firmware");
+
+        return false;
+    }
+
     if (controlRead(MT_FCE_DMA_ADDR, MT_VEND_READ_CFG))
     {
         Log::debug("Firmware already loaded, resetting...");
@@ -1447,33 +1469,6 @@ bool Mt76::loadFirmware()
     controlWrite(MT_TX_CPU_FROM_FCE_CPU_DESC_IDX, 0x01);
     controlWrite(MT_FCE_PDMA_GLOBAL_CONF, 0x44);
     controlWrite(MT_FCE_SKIP_FS, 0x03);
-
-    std::ifstream firmwareFile(FIRMWARE, std::ios::binary | std::ios::ate);
-    if (!firmwareFile)
-    {
-        Log::error("Failed to open firmware binary " FIRMWARE "\n\n"
-		"You can get the firmware using: xow-get-firmware.sh\n");
-
-        return false;
-    }
-    size_t blobSize = firmwareFile.tellg();
-    firmwareFile.seekg(0, std::ios::beg);
-
-    uint8_t* blob = new uint8_t[blobSize];
-    if (!firmwareFile.read((char*)blob, blobSize))
-    {
-        Log::error("Failed to load firmware into memory");
-        delete[] blob;
-
-        return false;
-    }
-
-    const Bytes firmware(
-        blob,
-        blob + blobSize
-    );
-
-    delete[] blob;
 
     const FwHeader *header = firmware.toStruct<FwHeader>();
     Bytes::Iterator ilmStart = firmware.begin() + sizeof(FwHeader);
