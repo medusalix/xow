@@ -64,7 +64,7 @@ disclaimer() {
         read -r option
         case "$option" in
             Y|YES|y|yes) break;;
-            N|NO|n|no) fail "You must agree with the term in order to continue. Exiting";;
+            N|NO|n|no|'') fail "You must agree with the term in order to continue. Exiting";;
             *) echo "Please answer yes or no";;
         esac
     done
