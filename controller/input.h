@@ -27,6 +27,8 @@
 #include <stdexcept>
 #include <linux/uinput.h>
 
+#define INPUT_MAX_FF_EFFECTS 10
+
 /*
  * User mode input device for gamepads
  * Passes force feedback events to callback
@@ -91,7 +93,7 @@ private:
     InterruptibleReader eventReader;
     std::thread eventThread;
 
-    ff_effect effect = {};
+    ff_effect effects[INPUT_MAX_FF_EFFECTS] = {};
     uint16_t effectGain = 0xffff;
     FeedbackReceived feedbackReceived;
 };
