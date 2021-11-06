@@ -27,7 +27,7 @@
 #include <stdexcept>
 #include <linux/uinput.h>
 
-#define INPUT_MAX_FF_EFFECTS 10
+#define INPUT_MAX_FF_EFFECTS 16
 
 /*
  * User mode input device for gamepads

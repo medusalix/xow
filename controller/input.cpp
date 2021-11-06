@@ -169,8 +169,16 @@ void InputDevice::handleFeedbackUpload(uint32_t id)
         return;
     }
 
-    effects[upload.effect.id] = upload.effect; //should really check the id first but the driver always seems to assign the first available from 0.
-    upload.retval = 0;
+    if (upload.effect.id >= 0 && upload.effect.id < INPUT_MAX_FF_EFFECTS)
+    {
+        effects[upload.effect.id] = upload.effect;
+        upload.retval = 0;
+    }
+    else
+    {
+        upload.retval = -EINVAL;
+        Log::error("Invalid effect ID (upload)");
+    }
 
     if (ioctl(file, UI_END_FF_UPLOAD, &upload) < 0)
     {
@@ -201,8 +209,16 @@ void InputDevice::handleFeedbackErase(uint32_t id)
         return;
     }
 
-    effects[erase.effect_id] = {};
-    erase.retval = 0;
+    if (erase.effect_id >= 0 && erase.effect_id < INPUT_MAX_FF_EFFECTS)
+    {
+        effects[erase.effect_id] = {};
+        erase.retval = 0;
+    }
+    else
+    {
+        erase.retval = -EINVAL;
+        Log::error("Invalid effect ID (erase)");
+    }
 
     if (ioctl(file, UI_END_FF_ERASE, &erase) < 0)
     {
