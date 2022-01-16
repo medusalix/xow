@@ -4,7 +4,7 @@
 set -eu
 
 firmware="#FIRMWARE#"
-terms_url="https://www.microsoft.com/en-us/legal/intellectualproperty/copyright"
+terms_url="https://www.microsoft.com/en-us/legal/terms-of-use"
 
 accept_terms=0
 
