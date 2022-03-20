@@ -1,6 +1,6 @@
 internal/*
 firmware.bin
-xow
+/xow
 *.d
 *.o
 .vscode/*

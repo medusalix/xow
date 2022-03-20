@@ -1,0 +1,6 @@
+# Enable compatibility mode (Xbox 360 emulation)
+#XOW_COMPATIBILITY=1
+
+# Defaults to nobody if not set
+XOW_USER=
+XOW_GROUP=

@@ -44,6 +44,7 @@ firmware.bin:
 .PHONY: install
 install: xow
 	sed 's|#BINDIR#|$(BINDIR)|' install/service.in > xow.service
+	sed 's|#BINDIR#|$(BINDIR)|' install/openrc/initd/xow.in > install/openrc/initd/xow
 	install -D -m 755 xow $(DESTDIR)$(BINDIR)/xow
 	install -D -m 644 install/udev.rules $(DESTDIR)$(UDEVDIR)/50-xow.rules
 	install -D -m 644 install/modules.conf $(DESTDIR)$(MODLDIR)/xow-uinput.conf
