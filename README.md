@@ -47,7 +47,7 @@ The following Xbox One controllers are currently compatible with the driver:
 | 1698         | 2015 | Elite controller          | **Working**  |
 | 1708         | 2016 | Bluetooth connectivity    | **Working**  |
 | 1797         | 2019 | Elite controller series 2 | **Working**  |
-| 1914         | 2020 | Share button and USB-C    | **Untested** |
+| 1914         | 2020 | Share button and USB-C    | **Working**  |
 
 ## Releases
 
@@ -158,6 +158,15 @@ The controller only remembers the *last* device it was connected to. It will not
 
 Some USB controllers are known to cause issues with xow. Plugging your dongle into a USB port that uses an `ASMedia` controller will lead to problems. Most `Intel` USB controllers work well with xow.
 Power management issues can arise when using a USB 3 controller. These can lead to timeouts of the USB communication. The use of a USB hub can mitigate these problems.
+
+### Controller periodically disconnects (when idle)
+Some controllers might periodically disconnect due to xow receiving an empty packet (which should not happen for most controllers).
+This usually happens when the controller is not receiving any input, but can still happen when being used.
+As a result, you can disable the automatic disconnect when building by using the `EMPTY_PACKET_DISCONNECT` flag as shown below:
+
+```
+make BUILD=RELEASE EMPTY_PACKET_DISCONNECT=0
+```
 
 ### Other problems
 
