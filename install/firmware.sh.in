@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 # vim: et sts=4 sw=4
 
 set -eu
