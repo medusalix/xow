@@ -71,7 +71,7 @@ get_firmware() {
 
     cd "$tmp" >/dev/null 2>&1
 
-    curl -o driver.cab "$url"
+    curl -L -o driver.cab "$url"
     cabextract -F FW_ACC_00U.bin driver.cab
     rm driver.cab
 
