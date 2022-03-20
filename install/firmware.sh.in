@@ -39,7 +39,7 @@ parse_args() {
 fail() { echo "$1" >&2; exit 1; }
 
 check_program() {
-    [ -x "$(command -v "$1")" ] || fail "Cannot find $1 - required to $2 the firmware ${3:-}."
+    [ -x "$(command -v "$1")" ] || fail "Cannot find $1 - required to $2 the firmware."
 }
 
 check_root() {
