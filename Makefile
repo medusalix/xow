@@ -12,8 +12,8 @@ SOURCES := $(wildcard *.cpp) $(wildcard */*.cpp)
 OBJECTS := $(SOURCES:.cpp=.o) firmware.o
 DEPENDENCIES := $(SOURCES:.cpp=.d)
 
-DRIVER_URL := http://download.windowsupdate.com/c/msdownload/update/driver/drvs/2017/07/1cd6a87c-623f-4407-a52d-c31be49e925c_e19f60808bdcbfbd3c3df6be3e71ffc52e43261e.cab
-FIRMWARE_HASH := 48084d9fa53b9bb04358f3bb127b7495dc8f7bb0b3ca1437bd24ef2b6eabdf66
+DRIVER_URL := http://download.windowsupdate.com/c/msdownload/update/driver/drvs/2018/09/e5339a2a-0cbf-4100-ae09-81dab77d8ab2_56ceef39e5f673aa1ea7dd3c17e71b5bd2add2f7.cab
+FIRMWARE_HASH := cef0b2a1a94c5a6407f1d198354d712eddc86dbc61a87223f4e4C53fe10ac92e
 
 PREFIX := /usr/local
 BINDIR := $(PREFIX)/bin
@@ -36,9 +36,9 @@ firmware.o: firmware.bin
 
 firmware.bin:
 	curl -o driver.cab $(DRIVER_URL)
-	cabextract -F FW_ACC_00U.bin driver.cab
-	echo $(FIRMWARE_HASH) FW_ACC_00U.bin | sha256sum -c
-	mv FW_ACC_00U.bin firmware.bin
+	cabextract -F FW_ACC_BR.bin driver.cab
+	echo $(FIRMWARE_HASH) FW_ACC_BR.bin | sha256sum -c
+	mv FW_ACC_BR.bin firmware.bin
 	$(RM) driver.cab
 
 .PHONY: install
