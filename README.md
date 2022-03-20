@@ -61,7 +61,6 @@ The following Xbox One controllers are currently compatible with the driver:
 ### Third-party hardware
 
 - EmuELEC (starting with [version 3.3](https://github.com/EmuELEC/EmuELEC/releases/tag/v3.3))
-- GamerOS (starting with [version 13](https://github.com/gamer-os/gamer-os/releases/tag/13))
 - Steam Link (starting with [build 747](https://steamcommunity.com/app/353380/discussions/0/1735510154204276395))
 
 Feel free to package xow for any Linux distribution or hardware you like, as long as you do not publish any prebuilt executables.
