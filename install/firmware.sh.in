@@ -69,7 +69,6 @@ get_firmware() {
     cwd=$(pwd)
     tmp=$(mktemp -d)
 
-    # TODO: trap rmdir
     cd "$tmp" >/dev/null 2>&1
 
     curl -o driver.cab "$url"
