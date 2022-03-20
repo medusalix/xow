@@ -18,10 +18,9 @@
   <img src="assets/screenshot.png" alt="Screenshot">
 </p>
 
-# The future of this project
+# This project is in maintenance mode
 
-I realize there have not been any substantial changes to xow in over a year now. This is partly due to the lack of free time for me as a university student. I thought about the numerous feature requests and long-standing bugs and finally decided to abandon the concept of a user mode driver. While it certainly proved a point it also demonstrated how quickly you reach the boundaries of integration with other parts of the operating system (audio, battery reporting, etc.).
-I have been working on a new kernel driver for the last couple of months and it already works pretty well. It is currently USB-only and support for the wireless dongle will be added later on. It has **audio functionality**, **battery reporting** and support for the **chatpad**. **If you would like to give it a try you can head over to the [Discord server](https://discord.gg/FDQxwWk). Feedback is much appreciated!**
+Upgrading to [xone](https://github.com/medusalix/xone) is *highly recommended*!
 
 ## About
 
