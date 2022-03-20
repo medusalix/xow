@@ -39,7 +39,7 @@ parse_args() {
 fail() { echo "$1" >&2; exit 1; }
 
 check_program() {
-    [ -x "$(command -v $1)" ] || fail "Cannot find $1 - required to $2 the firmware ${3:-}."
+    [ -x "$(command -v "$1")" ] || fail "Cannot find $1 - required to $2 the firmware ${3:-}."
 }
 
 check_root() {
@@ -83,11 +83,11 @@ get_firmware() {
     cabextract -F FW_ACC_00U.bin driver.cab
     rm driver.cab
 
-    echo $sum FW_ACC_00U.bin | sha256sum -c
+    echo "$sum" FW_ACC_00U.bin | sha256sum -c
 
     destdir=$(dirname $firmware)
     [ -e "$destdir" ] || mkdir -p "$destdir"
-    mv "$(pwd)"/FW_ACC_00U.bin $firmware
+    mv "$(pwd)"/FW_ACC_00U.bin "$firmware"
 
     cd "$cwd" >/dev/null 2>&1
     rmdir "$tmp"

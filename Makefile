@@ -1,6 +1,6 @@
 BUILD := DEBUG
 VERSION := $(shell git describe --tags)
-FIRMWARE := "/lib/firmware/xow_dongle.bin"
+FIRMWARE := /lib/firmware/xow_dongle.bin
 
 FLAGS := -Wall -Wpedantic -std=c++11 -MMD -MP
 DEBUG_FLAGS := -Og -g -DDEBUG
