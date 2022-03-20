@@ -86,6 +86,7 @@ git clone https://github.com/medusalix/xow
 Build xow using the following command:
 
 ```
+cd xow
 make BUILD=RELEASE
 ```
 
