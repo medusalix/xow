@@ -6,7 +6,7 @@ set -eu
 firmware="#FIRMWARE#"
 terms_url="https://www.microsoft.com/en-us/legal/terms-of-use"
 
-accept_terms=0
+skip_disclaimer=0
 
 usage() {
     echo
@@ -16,7 +16,7 @@ usage() {
     echo
     echo "OPTIONS"
     echo
-    echo "  --accept-terms"
+    echo "  --skip-disclaimer"
     echo "        The firmware is covered by the Microsoft Terms of Use."
     echo "        See the following URL for more details:"
     echo "        $terms_url"
@@ -29,7 +29,7 @@ usage() {
 parse_args() {
     while [ $# -gt 0 ]; do
         case "$1" in
-            --accept-terms ) shift; accept_terms=1;;
+            --skip-disclaimer ) shift; skip_disclaimer=1;;
             -h | --help ) usage; exit 0;;
             * ) usage; exit 1;;
         esac
@@ -97,7 +97,7 @@ main() {
     parse_args "$@"
     check_root
     check_programs
-    [ $accept_terms -eq 0 ] && disclaimer
+    [ $skip_disclaimer -eq 0 ] && disclaimer
     get_firmware
 }
 
