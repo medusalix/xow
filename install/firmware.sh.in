@@ -9,21 +9,18 @@ terms_url="https://www.microsoft.com/en-us/legal/terms-of-use"
 skip_disclaimer=0
 
 usage() {
-    echo
     echo "Usage: $(basename "$0") [OPTIONS]"
     echo
-    echo "Downloads the firmware required by XOW. Saved as $firmware"
+    echo "Downloads the firmware required by xow. Saved as $firmware"
     echo
     echo "OPTIONS"
     echo
     echo "  --skip-disclaimer"
-    echo "        The firmware is covered by the Microsoft Terms of Use."
-    echo "        See the following URL for more details:"
+    echo "        The firmware is covered by the Microsoft Terms of Use:"
     echo "        $terms_url"
     echo
     echo "  --help"
     echo "        This help screen"
-    echo
 }
 
 parse_args() {
@@ -52,20 +49,17 @@ check_programs() {
 }
 
 disclaimer() {
-    echo
-    echo "Firmware is distributed under the Microsoft Terms of Use as seen in"
+    echo "The firmware is distributed under the Microsoft Terms of Use:"
     echo "$terms_url"
     echo
-    echo
-    echo "Do you accept the terms of the agreement? [y/N]"
-    echo
+    printf "Do you accept the terms of the agreement? [y/N]: "
 
     while true; do
         read -r option
         case "$option" in
             Y|YES|y|yes) break;;
-            N|NO|n|no|'') fail "You must agree with the term in order to continue. Exiting";;
-            *) echo "Please answer yes or no";;
+            N|NO|n|no|'') fail "You must agree with the terms in order to continue. Exiting.";;
+            *) echo "Please answer yes or no.";;
         esac
     done
 }
