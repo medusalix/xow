@@ -1,0 +1,96 @@
+#!/usr/bin/env sh
+
+set -eu
+
+firmware="#FIRMWARE#"
+terms_url="https://www.microsoft.com/en-us/legal/terms-of-use"
+
+skip_disclaimer=0
+
+usage() {
+    echo "Usage: $(basename "$0") [OPTIONS]"
+    echo
+    echo "Downloads the firmware required by xow. Saved as $firmware"
+    echo
+    echo "OPTIONS"
+    echo
+    echo "  --skip-disclaimer"
+    echo "        The firmware is covered by the Microsoft Terms of Use:"
+    echo "        $terms_url"
+    echo
+    echo "  --help"
+    echo "        This help screen"
+}
+
+parse_args() {
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --skip-disclaimer ) shift; skip_disclaimer=1;;
+            -h | --help ) usage; exit 0;;
+            * ) usage; exit 1;;
+        esac
+    done
+}
+
+fail() { echo "$1" >&2; exit 1; }
+
+check_program() {
+    [ -x "$(command -v "$1")" ] || fail "Cannot find $1 - required to $2 the firmware."
+}
+
+check_root() {
+    [ "$(id -u)" -eq 0 ] || fail "You have to be root to run this script."
+}
+
+check_programs() {
+    check_program "curl" "download"
+    check_program "cabextract" "extract"
+}
+
+disclaimer() {
+    echo "The firmware is distributed under the Microsoft Terms of Use:"
+    echo "$terms_url"
+    echo
+    printf "Do you accept the terms of the agreement? [y/N]: "
+
+    while true; do
+        read -r option
+        case "$option" in
+            Y|YES|y|yes) break;;
+            N|NO|n|no|'') fail "You must agree with the terms in order to continue. Exiting.";;
+            *) echo "Please answer yes or no.";;
+        esac
+    done
+}
+
+get_firmware() {
+    url="http://download.windowsupdate.com/c/msdownload/update/driver/drvs/2017/07/1cd6a87c-623f-4407-a52d-c31be49e925c_e19f60808bdcbfbd3c3df6be3e71ffc52e43261e.cab"
+    sum="48084d9fa53b9bb04358f3bb127b7495dc8f7bb0b3ca1437bd24ef2b6eabdf66"
+    cwd=$(pwd)
+    tmp=$(mktemp -d)
+
+    cd "$tmp" >/dev/null 2>&1
+
+    curl -L -o driver.cab "$url"
+    cabextract -F FW_ACC_00U.bin driver.cab
+    rm driver.cab
+
+    echo "$sum" FW_ACC_00U.bin | sha256sum -c
+
+    destdir=$(dirname $firmware)
+    [ -e "$destdir" ] || mkdir -p "$destdir"
+    mv "$(pwd)"/FW_ACC_00U.bin "$firmware"
+
+    cd "$cwd" >/dev/null 2>&1
+    rmdir "$tmp"
+}
+
+main() {
+    parse_args "$@"
+    check_root
+    check_programs
+    [ $skip_disclaimer -eq 0 ] && disclaimer
+    get_firmware
+}
+
+main "$@"

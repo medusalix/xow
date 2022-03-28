@@ -20,6 +20,7 @@
 #include "../utils/log.h"
 
 #include <chrono>
+#include <fstream>
 
 #define BITS_PER_LONG (sizeof(long) * 8)
 #define BIT(nr) (1UL << (nr))
@@ -809,9 +810,6 @@
 #define MT_CH_POWER_MIN 0x00
 #define MT_CH_POWER_MAX 0x2f
 
-extern const uint8_t _binary_firmware_bin_start[];
-extern const uint8_t _binary_firmware_bin_end[];
-
 Mt76::Mt76(
     std::unique_ptr<UsbDevice> usbDevice
 ) : usbDevice(std::move(usbDevice))
@@ -1410,6 +1408,28 @@ bool Mt76::initChannels()
 
 bool Mt76::loadFirmware()
 {
+    std::ifstream file(FIRMWARE, std::ios::binary | std::ios::ate);
+
+    if (!file)
+    {
+        Log::error("Failed to open %s", FIRMWARE);
+        Log::info("Run xow-get-firmware.sh to download the firmware");
+
+        return false;
+    }
+
+    std::streampos fileSize = file.tellg();
+    Bytes firmware(fileSize);
+
+    file.seekg(0, std::ios::beg);
+
+    if (!file.read(reinterpret_cast<char*>(firmware.raw()), fileSize))
+    {
+        Log::error("Failed to read firmware");
+
+        return false;
+    }
+
     if (controlRead(MT_FCE_DMA_ADDR, MT_VEND_READ_CFG))
     {
         Log::debug("Firmware already loaded, resetting...");
@@ -1449,11 +1469,6 @@ bool Mt76::loadFirmware()
     controlWrite(MT_TX_CPU_FROM_FCE_CPU_DESC_IDX, 0x01);
     controlWrite(MT_FCE_PDMA_GLOBAL_CONF, 0x44);
     controlWrite(MT_FCE_SKIP_FS, 0x03);
-
-    const Bytes firmware(
-        _binary_firmware_bin_start,
-        _binary_firmware_bin_end
-    );
 
     const FwHeader *header = firmware.toStruct<FwHeader>();
     Bytes::Iterator ilmStart = firmware.begin() + sizeof(FwHeader);

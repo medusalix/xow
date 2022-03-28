@@ -28,13 +28,6 @@ xow is a Linux user mode driver for the Xbox One wireless dongle.
 It communicates with the dongle via `libusb` and provides joystick input through the `uinput` kernel module.
 The input mapping is based on existing kernel drivers like [xpad](https://github.com/paroj/xpad).
 
-## Important notes
-
-The Xbox One wireless dongle requires a proprietary firmware to operate.
-The firmware is included with the *Xbox - Net - 7/11/2017 12:00:00 AM - 1.0.46.1* driver available from *Microsoft Update Catalog*.
-The package is automatically downloaded and extracted during the build process due to Microsoft's [Terms of Use](https://www.microsoft.com/en-us/legal/intellectualproperty/copyright/default.aspx), which strictly disallow the distribution of the firmware.
-**By using xow, you accept Microsoft's license terms for their driver package.**
-
 ## Supported devices
 
 xow supports both versions of the wireless dongle (slim and bulky one) and the Surface Book 2's built-in adapter.
@@ -62,8 +55,7 @@ The following Xbox One controllers are currently compatible with the driver:
 - EmuELEC (starting with [version 3.3](https://github.com/EmuELEC/EmuELEC/releases/tag/v3.3))
 - Steam Link (starting with [build 747](https://steamcommunity.com/app/353380/discussions/0/1735510154204276395))
 
-Feel free to package xow for any Linux distribution or hardware you like, as long as you do not publish any prebuilt executables.
-The build process embeds a copy of Microsoft's proprietary firmware into the binary, prohibiting any type of distribution.
+Feel free to package xow for any Linux distribution or hardware you like.
 Any issues regarding the packaging should be reported to the respective maintainers.
 
 ## Installation
@@ -76,13 +68,15 @@ Any issues regarding the packaging should be reported to the respective maintain
 - libusb (libusb-1.0-0-dev for Debian)
 - systemd (version 232 or newer)
 
-Clone the repository (necessary for version tagging to work):
+### Guide
+
+1. Clone the repository:
 
 ```
 git clone https://github.com/medusalix/xow
 ```
 
-Build xow using the following command:
+2. Build xow using the following command:
 
 ```
 cd xow
@@ -91,7 +85,15 @@ make BUILD=RELEASE
 
 **NOTE:** Please use `BUILD=DEBUG` when asked for your debug logs.
 
-Install xow as a `systemd` unit (runs xow at boot time) and start the service:
+3. Download the firmware for the wireless dongle:
+
+```
+sudo xow-get-firmware.sh
+```
+
+**NOTE:** The `--skip-disclaimer` flag might be useful for scripting purposes.
+
+4. Install xow as a `systemd` unit (runs xow at boot time) and start the service:
 
 ```
 sudo make install

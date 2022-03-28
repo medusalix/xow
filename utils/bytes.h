@@ -40,6 +40,8 @@ public:
 
     inline Bytes() {}
 
+    inline Bytes(size_t count) : data(count) {}
+
     inline Bytes(
         std::initializer_list<uint8_t> elements
     ) : data(elements) {}

@@ -1,5 +1,6 @@
 internal/*
-firmware.bin
+firmware.sh
+xow.service
 xow
 *.d
 *.o
