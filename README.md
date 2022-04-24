@@ -76,11 +76,12 @@ Any issues regarding the packaging should be reported to the respective maintain
 git clone https://github.com/medusalix/xow
 ```
 
-2. Build xow using the following command:
+2. Build and install xow:
 
 ```
 cd xow
 make BUILD=RELEASE
+sudo make install
 ```
 
 **NOTE:** Please use `BUILD=DEBUG` when asked for your debug logs.
@@ -93,10 +94,9 @@ sudo xow-get-firmware.sh
 
 **NOTE:** The `--skip-disclaimer` flag might be useful for scripting purposes.
 
-4. Install xow as a `systemd` unit (runs xow at boot time) and start the service:
+4. Enable and start the `systemd` service (runs xow at boot time):
 
 ```
-sudo make install
 sudo systemctl enable xow
 sudo systemctl start xow
 ```
