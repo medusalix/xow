@@ -1,5 +1,5 @@
 BUILD := DEBUG
-VERSION := $(shell git describe --tags)
+VERSION := $(shell git describe --tags 2> /dev/null || echo unknown)
 FIRMWARE := /lib/firmware/xow_dongle.bin
 
 FLAGS := -Wall -Wpedantic -std=c++11 -MMD -MP
@@ -28,7 +28,6 @@ xow: $(OBJECTS)
 
 %.o: %.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
-
 
 firmware.sh: install/firmware.sh.in
 	sed "s|#FIRMWARE#|$(FIRMWARE)|" $< > $@
