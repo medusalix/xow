@@ -16,11 +16,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include "log.h"
-#include "bytes.h"
-
-#include <sstream>
 #include <iomanip>
+#include <map>
+#include <sstream>
+#include <thread>
+
+#include "bytes.h"
+#include "log.h"
+
+static std::map<int, std::string> map_level = {
+    {LOG_DEBUG, "DEBUG"},
+    {LOG_INFO, "INFO"},
+    {LOG_ERROR, "ERROR"},
+};
 
 namespace Log
 {
@@ -44,20 +52,24 @@ namespace Log
         return output;
     }
 
-    std::string formatLog(std::string level, std::string message)
-    {
+    std::string formatLog(const int syslog_level, std::string message) {
         std::ostringstream stream;
-        std::time_t time = std::time(nullptr);
-        std::tm localTime = {};
 
-        // Add local time to output if available
-        if (localtime_r(&time, &localTime))
-        {
-            stream << std::put_time(&localTime, "%F %T") << " ";
+        // Add local time to output if available and not logging to journald
+        if (!getenv("JOURNAL_STREAM")) {
+            std::time_t time = std::time(nullptr);
+            std::tm localTime = {};
+            if (localtime_r(&time, &localTime)) {
+                stream << std::put_time(&localTime, "%F %T") << " ";
+            }
+            stream << "[" << std::left << std::setw(5);
+            stream << map_level[syslog_level] << "] [";
+        } else {
+            stream << "<" << syslog_level << ">[";
         }
 
-        stream << std::left << std::setw(5);
-        stream << level << " - ";
+        stream << std::hex << std::setw(16) << std::right;
+        stream << std::this_thread::get_id() << "] - ";
         stream << message << std::endl;
 
         return stream.str();
