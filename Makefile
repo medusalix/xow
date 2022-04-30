@@ -2,7 +2,7 @@ BUILD := DEBUG
 VERSION := $(shell git describe --tags 2> /dev/null || echo unknown)
 FIRMWARE := /lib/firmware/xow_dongle.bin
 
-FLAGS := -Wall -Wpedantic -std=c++11 -MMD -MP
+FLAGS := -Wall -Wpedantic -std=c++17 -MMD -MP
 DEBUG_FLAGS := -Og -g -DDEBUG
 RELEASE_FLAGS := -O3
 DEFINES := -DVERSION=\"$(VERSION)\" -DFIRMWARE=\"$(FIRMWARE)\"

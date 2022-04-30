@@ -15,32 +15,47 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
+#ifndef XOW_LOGGER_INSTANCE_H_
+#define XOW_LOGGER_INSTANCE_H_
 
-#include "log.h"
-#include "bytes.h"
+#include <memory>
 
-#include <sstream>
-#include <iomanip>
+#include "logger_console.h"
+#include "logger_syslog.h"
 
 namespace Log
 {
-    std::string formatBytes(const Bytes &bytes)
-    {
-        std::ostringstream stream;
 
-        stream << std::hex << std::setfill('0');
+class LoggerInstance {
+public:
+    LoggerInstance(const LoggerInstance&) = delete;
+    void operator=(const LoggerInstance&) = delete;
+    ~LoggerInstance() = default;
 
-        for (uint8_t byte : bytes)
-        {
-            stream << std::setw(2);
-            stream << static_cast<uint32_t>(byte) << ':';
-        }
-
-        std::string output = stream.str();
-
-        // Remove trailing colon
-        output.pop_back();
-
-        return output;
+    static LoggerInstance& instance() {
+        static LoggerInstance instance;
+        return instance;
     }
+
+    static ILogger& logger() {
+        return instance().getLogger();
+    }
+
+    ILogger& getLogger() {
+        return *_logger;
+    }
+
+    void installSysloger() {
+        _logger = std::make_unique<LoggerSyslog>();
+    }
+
+private:
+    std::unique_ptr<ILogger> _logger;
+
+    LoggerInstance():
+        _logger(std::make_unique<LoggerConsole>()) {
+    };
+};
+
 }
+#endif

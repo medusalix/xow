@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Medusalix
+ * Copyright (C) 2021 Medusalix
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -15,32 +15,34 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
+#include <syslog.h>
 
-#include "log.h"
-#include "bytes.h"
-
-#include <sstream>
-#include <iomanip>
+#include "logger_syslog.h"
 
 namespace Log
 {
-    std::string formatBytes(const Bytes &bytes)
-    {
-        std::ostringstream stream;
 
-        stream << std::hex << std::setfill('0');
+LoggerSyslog::~LoggerSyslog() {
+    closelog();
+}
 
-        for (uint8_t byte : bytes)
-        {
-            stream << std::setw(2);
-            stream << static_cast<uint32_t>(byte) << ':';
-        }
-
-        std::string output = stream.str();
-
-        // Remove trailing colon
-        output.pop_back();
-
-        return output;
+int LoggerSyslog::logLevelToSyslog(Level level) {
+    switch(level) {
+        case Level::LOGLEVEL_DEBUG:
+            return LOG_DEBUG;
+        case Level::LOGLEVEL_INFO:
+            return LOG_INFO;
+        default:
+            return LOG_ERR;
     }
+}
+
+void LoggerSyslog::init() {
+    openlog(nullptr, LOG_CONS, LOG_DAEMON);
+}
+
+void LoggerSyslog::sinkLog(Level level, const std::string& message) {
+    syslog(logLevelToSyslog(level), "%s", message.c_str());
+}
+
 }

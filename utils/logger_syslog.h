@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Medusalix
+ * Copyright (C) 2021 Medusalix
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -15,32 +15,27 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
+#ifndef XOW_LOGGER_SYSLOG_H_
+#define XOW_LOGGER_SYSLOG_H_
 
-#include "log.h"
-#include "bytes.h"
-
-#include <sstream>
-#include <iomanip>
+#include "i_logger.h"
 
 namespace Log
 {
-    std::string formatBytes(const Bytes &bytes)
-    {
-        std::ostringstream stream;
 
-        stream << std::hex << std::setfill('0');
+class LoggerSyslog: public ILogger {
+public:
+    LoggerSyslog() = default;
+    ~LoggerSyslog();
 
-        for (uint8_t byte : bytes)
-        {
-            stream << std::setw(2);
-            stream << static_cast<uint32_t>(byte) << ':';
-        }
+    static int logLevelToSyslog(Level level);
 
-        std::string output = stream.str();
+    virtual void init() override;
+    virtual void sinkLog(Level level, const std::string& message) override;
 
-        // Remove trailing colon
-        output.pop_back();
+private:
+    std::string formatLog(Level level, const std::string& message);
+};
 
-        return output;
-    }
 }
+#endif
