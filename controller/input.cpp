@@ -23,12 +23,16 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#define INPUT_MAX_FF_EFFECTS 1
-
 InputDevice::InputDevice(
     FeedbackReceived feedbackReceived
 ) : feedbackReceived(feedbackReceived)
 {
+    for(int i=0;i<INPUT_MAX_FF_EFFECTS;i++)
+    {
+        effects[i] = {};
+    }
+
+
     file = open("/dev/uinput", O_RDWR | O_NONBLOCK);
 
     if (file < 0)
@@ -153,6 +157,8 @@ void InputDevice::handleFeedbackUpload(uint32_t id)
 
     upload.request_id = id;
 
+    Log::debug("Got feedback upload %d", id);
+
     if (ioctl(file, UI_BEGIN_FF_UPLOAD, &upload) < 0)
     {
         Log::error(
@@ -163,8 +169,16 @@ void InputDevice::handleFeedbackUpload(uint32_t id)
         return;
     }
 
-    effect = upload.effect;
-    upload.retval = 0;
+    if (upload.effect.id >= 0 && upload.effect.id < INPUT_MAX_FF_EFFECTS)
+    {
+        effects[upload.effect.id] = upload.effect;
+        upload.retval = 0;
+    }
+    else
+    {
+        upload.retval = -EINVAL;
+        Log::error("Invalid effect ID (upload)");
+    }
 
     if (ioctl(file, UI_END_FF_UPLOAD, &upload) < 0)
     {
@@ -173,6 +187,8 @@ void InputDevice::handleFeedbackUpload(uint32_t id)
             strerror(errno)
         );
     }
+
+    Log::debug("Uploaded effect id %d", upload.effect.id);
 }
 
 void InputDevice::handleFeedbackErase(uint32_t id)
@@ -180,6 +196,8 @@ void InputDevice::handleFeedbackErase(uint32_t id)
     uinput_ff_erase erase = {};
 
     erase.request_id = id;
+
+    Log::debug("Got feedback erase %d", id);
 
     if (ioctl(file, UI_BEGIN_FF_ERASE, &erase) < 0)
     {
@@ -191,8 +209,16 @@ void InputDevice::handleFeedbackErase(uint32_t id)
         return;
     }
 
-    effect = {};
-    erase.retval = 0;
+    if (erase.effect_id >= 0 && erase.effect_id < INPUT_MAX_FF_EFFECTS)
+    {
+        effects[erase.effect_id] = {};
+        erase.retval = 0;
+    }
+    else
+    {
+        erase.retval = -EINVAL;
+        Log::error("Invalid effect ID (erase)");
+    }
 
     if (ioctl(file, UI_END_FF_ERASE, &erase) < 0)
     {
@@ -201,15 +227,18 @@ void InputDevice::handleFeedbackErase(uint32_t id)
             strerror(errno)
         );
     }
+
+    Log::debug("Erased effect id %d", erase.effect_id);
 }
 
 void InputDevice::handleEvent(input_event event)
 {
+    Log::debug("input_event type %d code %d value %d", (int)event.type, (int)event.code, (int)event.value); 
     if (event.type == EV_UINPUT)
-    {
+    {//special event type, see uinput.h
         if (event.code == UI_FF_UPLOAD)
         {
-            handleFeedbackUpload(event.value);
+            handleFeedbackUpload(event.value); //value is the uinput event id, not to be confused with the request id
         }
 
         else if (event.code == UI_FF_ERASE)
@@ -223,12 +252,18 @@ void InputDevice::handleEvent(input_event event)
         if (event.code == FF_GAIN)
         {
             // Gain varies between 0 and 0xffff
-            effectGain = event.value;
+            effectGain = event.value; //seems to be device-wide, not tied to any effect
+            Log::debug("Gain adjusted to %d", (int)effectGain);
         }
 
-        else if (event.code == effect.id)
+        else if (event.code >= 0 && event.code < INPUT_MAX_FF_EFFECTS) //should really check if the effect has been erased or not
         {
-            feedbackReceived(effectGain, effect, event.value);
+            Log::debug("Triggering effect %d", (int)event.code);
+            feedbackReceived(effectGain, effects[event.code], event.value);
+        }
+        else
+        {
+            Log::debug("Event code %d not handled", (int)event.code);
         }
     }
 }

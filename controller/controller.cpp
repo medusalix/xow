@@ -281,6 +281,7 @@ void Controller::inputFeedbackReceived(
     // Ignore other types of force feedback
     if (effect.type != FF_RUMBLE)
     {
+        Log::debug("Unknown effect %d", (int)effect.type);
         return;
     }
 
