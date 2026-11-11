@@ -1,0 +1,17 @@
+[Unit]
+Description=Stop Xbox wireless driver for sleep and restore it after wake
+Documentation=https://www.freedesktop.org/software/systemd/man/latest/systemd.special.html#sleep.target
+DefaultDependencies=no
+Before=sleep.target
+StopWhenUnneeded=yes
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/systemctl stop xow.service
+ExecStop=/usr/bin/systemctl --no-block start xow.service
+# Wait for xow.service's own stop timeout before allowing sleep.
+TimeoutStartSec=infinity
+
+[Install]
+WantedBy=sleep.target

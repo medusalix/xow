@@ -43,6 +43,7 @@ install: all
 	install -D -m 644 install/modules.conf $(DESTDIR)$(MODLDIR)/xow-uinput.conf
 	install -D -m 644 install/modprobe.conf $(DESTDIR)$(MODPDIR)/xow-blacklist.conf
 	install -D -m 644 xow.service $(DESTDIR)$(SYSDDIR)/xow.service
+	install -D -m 644 install/sleep.service $(DESTDIR)$(SYSDDIR)/xow-sleep.service
 
 .PHONY: uninstall
 uninstall:
@@ -52,6 +53,7 @@ uninstall:
 	$(RM) $(DESTDIR)$(MODLDIR)/xow-uinput.conf
 	$(RM) $(DESTDIR)$(MODPDIR)/xow-blacklist.conf
 	$(RM) $(DESTDIR)$(SYSDDIR)/xow.service
+	$(RM) $(DESTDIR)$(SYSDDIR)/xow-sleep.service
 
 .PHONY: clean
 clean:

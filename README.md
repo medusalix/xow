@@ -103,11 +103,29 @@ sudo systemctl start xow
 
 **NOTE:** Running xow manually is **strongly discouraged**. A reboot might be required for xow to work correctly.
 
-### Updating
+### Suspend and resume (optional)
 
-Make sure to completely uninstall xow before updating:
+If controllers stop reconnecting after suspend, an optional service can stop xow before sleep and start it after wake:
 
 ```
+sudo systemctl daemon-reload
+sudo systemctl enable xow-sleep.service
+```
+
+Enable the helper without `--now`; it runs automatically during the next sleep cycle. It starts xow after every wake, even if xow was manually stopped before sleep.
+
+To disable this behavior, run the following while the system is awake:
+
+```
+sudo systemctl disable xow-sleep.service
+```
+
+### Updating
+
+Make sure to completely uninstall xow before updating. Disable the sleep helper while the system is awake before stopping or uninstalling xow:
+
+```
+sudo systemctl disable xow-sleep.service
 sudo systemctl stop xow
 sudo systemctl disable xow
 sudo make uninstall
