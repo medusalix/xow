@@ -572,6 +572,8 @@ private:
     Bytes efuseRead(uint8_t address, uint8_t index);
 
     uint16_t connectedClients = 0;
+    uint8_t currentChannel = 0;
+    McuChannelBandwidth currentBandwidth = MT_CH_BW_20;
 };
 
 class Mt76Exception : public std::runtime_error

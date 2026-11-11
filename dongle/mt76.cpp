@@ -21,6 +21,7 @@
 
 #include <chrono>
 #include <fstream>
+#include <thread>
 
 #define BITS_PER_LONG (sizeof(long) * 8)
 #define BIT(nr) (1UL << (nr))
@@ -863,6 +864,10 @@ Mt76::Mt76(
         throw Mt76Exception("Failed to init channels");
     }
 
+    // Channel changes need time to settle before advertising the reconnect
+    // beacon, matching xone_mt76_init_radio() in the maintained xone driver.
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
     if (!writeBeacon(false))
     {
         throw Mt76Exception("Failed to write beacon");
@@ -1362,21 +1367,44 @@ bool Mt76::calibrateCrystal()
 
 bool Mt76::initChannels()
 {
+    // Match xone's channel evaluation and radio restart sequence.
+    controlWrite(MT_RX_FILTR_CFG, 0x014f13);
+
     // Configure each individual channel
     // Power for channels 0x24 - 0x30 gets increased by the original driver
     // It sometimes even exceeds the absolute maximum of 0x2f
-    configureChannel(0x01, MT_CH_BW_20, true);
-    configureChannel(0x06, MT_CH_BW_20, true);
-    configureChannel(0x0b, MT_CH_BW_20, true);
-    configureChannel(0x24, MT_CH_BW_40, true);
-    configureChannel(0x28, MT_CH_BW_40, false);
-    configureChannel(0x2c, MT_CH_BW_40, true);
-    configureChannel(0x30, MT_CH_BW_40, false);
-    configureChannel(0x95, MT_CH_BW_80, true);
-    configureChannel(0x99, MT_CH_BW_80, false);
-    configureChannel(0x9d, MT_CH_BW_80, true);
-    configureChannel(0xa1, MT_CH_BW_80, false);
-    configureChannel(0xa5, MT_CH_BW_80, false);
+    if (!configureChannel(0x01, MT_CH_BW_20, true) ||
+        !configureChannel(0x06, MT_CH_BW_20, true) ||
+        !configureChannel(0x0b, MT_CH_BW_20, true) ||
+        !configureChannel(0x24, MT_CH_BW_40, true) ||
+        !configureChannel(0x28, MT_CH_BW_40, false) ||
+        !configureChannel(0x2c, MT_CH_BW_40, true) ||
+        !configureChannel(0x30, MT_CH_BW_40, false) ||
+        !configureChannel(0x95, MT_CH_BW_80, true) ||
+        !configureChannel(0x99, MT_CH_BW_80, false) ||
+        !configureChannel(0x9d, MT_CH_BW_80, true) ||
+        !configureChannel(0xa1, MT_CH_BW_80, false) ||
+        !configureChannel(0xa5, MT_CH_BW_80, false))
+    {
+        controlWrite(MT_RX_FILTR_CFG, 0x017f17);
+        return false;
+    }
+
+    controlWrite(MT_RX_FILTR_CFG, 0x017f17);
+
+    if (!configureChannel(currentChannel, currentBandwidth, true) ||
+        !powerMode(RADIO_OFF))
+    {
+        return false;
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+    if (!powerMode(RADIO_ON) ||
+        !configureChannel(currentChannel, currentBandwidth, false))
+    {
+        return false;
+    }
 
     // List of wireless channel candidates
     const Bytes candidates = {
@@ -1493,6 +1521,7 @@ bool Mt76::loadFirmware()
 
     // Load initial vector block (IVB)
     controlWrite(MT_FCE_DMA_ADDR, 0, MT_VEND_WRITE_CFG);
+
     controlWrite(MT_FW_LOAD_IVB, 0, MT_VEND_DEV_MODE);
 
     // Wait for firmware to start
@@ -1757,6 +1786,10 @@ bool Mt76::configureChannel(
         return false;
     }
 
+    // Match the beacon to the last successful channel-switch request, as
+    // newer xone does, instead of advertising an unspecified channel (0).
+    currentChannel = channel;
+    currentBandwidth = bandwidth;
     Log::debug("Channel %d, power: %d", channel, config.txPower);
 
     return true;
