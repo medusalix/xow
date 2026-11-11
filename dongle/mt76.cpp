@@ -1522,6 +1522,12 @@ bool Mt76::loadFirmware()
     // Load initial vector block (IVB)
     controlWrite(MT_FCE_DMA_ADDR, 0, MT_VEND_WRITE_CFG);
 
+    // Apply the same RF patch on a cold start as on a firmware reset.
+    // Current xone does this before starting the MCU so beacon transmission
+    // works even when the dongle has just been connected to USB power.
+    uint32_t rfPatch = controlRead(MT_RF_PATCH, MT_VEND_READ_CFG);
+    controlWrite(MT_RF_PATCH, rfPatch & ~BIT(19), MT_VEND_WRITE_CFG);
+
     controlWrite(MT_FW_LOAD_IVB, 0, MT_VEND_DEV_MODE);
 
     // Wait for firmware to start
